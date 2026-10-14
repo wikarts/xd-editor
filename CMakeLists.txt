@@ -45,15 +45,15 @@ juce_add_plugin(XDEditor
     PLUGIN_CODE Xded
     FORMATS ${XD_FORMATS}
     PRODUCT_NAME "XD Editor"
-    DESCRIPTION "Editor and librarian for the Korg minilogue xd"
-    IS_SYNTH TRUE
+    DESCRIPTION "Editor and librarian for the Korg minilogue xd (audio effect insert)"
+    IS_SYNTH FALSE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT TRUE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS TRUE
     COPY_PLUGIN_AFTER_BUILD FALSE
-    VST3_CATEGORIES Instrument Synth External
-    AU_MAIN_TYPE kAudioUnitType_MusicDevice)
+    VST3_CATEGORIES Fx Tools
+    AU_MAIN_TYPE kAudioUnitType_MusicEffect)
 
 target_sources(XDEditor PRIVATE
     ${CORE_SOURCES}

@@ -6,7 +6,9 @@ using namespace xd;
 static int msNow() { return (int) juce::Time::getMillisecondCounter(); }
 
 XDProcessor::XDProcessor()
-    : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+    : AudioProcessor (BusesProperties()
+                          .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                          .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
 {
     auto& table = ParamTable::get();
     dirty.reset (new std::atomic<bool>[(size_t) table.size()]);
@@ -74,9 +76,23 @@ static bool isSynthCC (int cc)
     }
 }
 
+bool XDProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+{
+    // audio effect insert: the synth's audio passes through unchanged (mono or stereo)
+    const auto out = layouts.getMainOutputChannelSet();
+    if (out != juce::AudioChannelSet::mono() && out != juce::AudioChannelSet::stereo()) return false;
+    return layouts.getMainInputChannelSet() == out;
+}
+
 void XDProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    buffer.clear();
+    // Audio passes through untouched so the plugin can sit on the track carrying the synth's audio.
+    // The standalone app has no use for audio and must not feed the microphone back to the speakers.
+    if (wrapperType == wrapperType_Standalone)
+        buffer.clear();
+    else
+        for (int ch = getTotalNumInputChannels(); ch < getTotalNumOutputChannels(); ++ch)
+            buffer.clear (ch, 0, buffer.getNumSamples());
     const bool parseHost = settings->hostInputAsSynth;
     const int route = settings->outputRoute;
 

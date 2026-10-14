@@ -42,6 +42,14 @@ int main()
         run (p); // flush the device inquiry
 
         auto& t = ParamTable::get();
+        // ---- audio passes through unchanged (effect insert)
+        {
+            juce::AudioBuffer<float> audio (2, 64);
+            for (int i = 0; i < 64; ++i) { audio.setSample (0, i, 0.25f); audio.setSample (1, i, -0.5f); }
+            juce::MidiBuffer m;
+            p.processBlock (audio, m);
+            CHECK (std::abs (audio.getSample (0, 10) - 0.25f) < 1.0e-6f && std::abs (audio.getSample (1, 63) + 0.5f) < 1.0e-6f);
+        }
         // ---- 10-bit CC
         p.setValueFromUI (t.indexOf ("cutoff"), 777);
         auto out = msgs (run (p));

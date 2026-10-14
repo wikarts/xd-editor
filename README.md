@@ -74,6 +74,10 @@ xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"XD Editor.vst3" ~/
 
 ## Working in a DAW
 
+XD Editor is an **audio effect** (VST3 "Fx", AU "MusicEffect"): put it as an insert on the audio track that
+receives the minilogue xd's audio, like any EQ or compressor. The audio passes through unchanged; the plugin
+talks to the synth over its own MIDI ports, so your DAW's MIDI track can keep sending notes to the synth as usual.
+
 * Each instance stores in the project: the current patch (all 1024 bytes including the sequence), the "saved"
   version (for comparisons), description/author, bank file paths, panel state and morph locks.
 * When the project is opened the patch is sent to the synth's edit buffer (~0.7 s after loading) —
