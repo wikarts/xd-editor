@@ -135,7 +135,7 @@ int main (int argc, char** argv)
     dir.deleteRecursively();
     dir.createDirectory();
     {
-        AddInfo ai { "Wiktor", "Gruby bas", "Bass", "2026-10-14T12:00:00" };
+        AddInfo ai { "Wiktor", "Fat bass", "Bass", "2026-10-14T12:00:00" };
         auto f1 = dir.getChildFile ("a.syx");
         CHECK (files::saveProgramSyx (f1, p, ai, 0).ok);
         Program r; AddInfo ar;

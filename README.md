@@ -1,124 +1,135 @@
-# XD Editor — edytor i librarian Korg minilogue xd (VST3 / AU / standalone)
+# XD Editor — editor & librarian for the Korg minilogue xd (VST3 / AU / standalone)
 
-Otwarte odtworzenie funkcjonalności panelu Ctrlr „Korg Minilogue XD” (Sunny Synths, v2.4) jako natywna
-wtyczka JUCE. Działa jak edytory producentów (np. wtyczki Moog): **patch zapisuje się w projekcie DAW
-i po otwarciu projektu jest automatycznie wysyłany do syntezatora**, a do tego masz pełny librarian.
+An open-source editor and librarian for the **Korg minilogue xd**, recreating the feature set of the
+discontinued "Korg Minilogue XD" Ctrlr panel by Sunny Synths (v2.4) as a native JUCE plugin.
+It works like the hardware editors from synth makers (e.g. Moog's plugins): **the patch is saved with your DAW
+project and sent back to the synth when the project is opened**, and you get a full librarian on top.
 
-## Funkcje
+![Main tab](docs/screenshot-main.png)
 
-| Z oryginalnej instrukcji | W XD Editor |
+## Features
+
+| From the original panel | In XD Editor |
 |---|---|
-| Wszystkie parametry programu, edycja dwukierunkowa (CC/NRPN) | ✔ 10‑bitowe CC (CC63 + CC), NRPN 7/8/10‑bit, parametry kontekstowe (Multi shape/select, Mod FX sub type) |
-| Parametry bez CC („jasnozielone”) + małe przyciski Send | ✔ + opcjonalne **automatyczne wysyłanie zrzutu** 250 ms po zmianie |
-| LCD: nazwa, opis, CC/NRPN, wartość bieżąca i zapisana | ✔ (+ przycisk LCD OFF) |
-| Wykresy obwiedni ADSR / AD sterowane myszą | ✔ |
-| Direct mode, Source (Disk 1 / Disk 2 / Minilogue), Bank, Program, pozycja 000 = plik | ✔ |
-| Load / Save / Receive / Send / Rename / Init | ✔ (Init zachowuje autora) |
-| Pliki .syx, .mnlgxdprog, .mnlgxdlib (odczyt), .prog_bin | ✔ — **.mnlgxdlib także zapis** |
-| Opis, autor, kategoria, data zapisu (`_AddInfo`) | ✔ (plik `nazwa_AddInfo.xml` obok .syx; w .mnlgxdprog w prog_info) |
-| Parametry globalne (Request / Send) | ✔ |
-| Librarian: 3 banki × 500, load/save/init/receive/send/clear/eksport listy | ✔ |
-| Operacje: load, init, wstaw plik, zapis do pliku, bufor → slot, move, copy, multi‑copy (as‑is / collated), swap, porównania | ✔ |
-| Clean dump (`_CleanDump.syx`), BankAutoSave, gwiazdka przy niezapisanym banku | ✔ |
-| Morphing z blokadą sekcji, Morph 0% / 100%, CC 100 | ✔ + **parametr automatyzacji „Morph”** |
-| Podgląd Note / Motion sequencera | ✔ (tylko odczyt, jak w oryginale) |
-| Nazwy modułów USER (osc / mod fx / delay / reverb) | ✔ |
-| Wyświetlanie i eksport informacji o programie (7 trybów) | ✔ |
-| Ustawienia potwierdzeń, tryb zapisu, szybkość transferu, zoom z pamięcią | ✔ |
-| Device Inquiry + przycisk ponowienia | ✔ (kanał MIDI ustawia się sam z odpowiedzi syntezatora) |
+| Every program parameter, two-way editing (CC/NRPN) | ✔ 10-bit CCs (CC63 + CC), 7/8/10-bit NRPNs, context CCs (Multi shape/select, Mod FX sub type) |
+| Parameters without CC ("light green") + small Send buttons | ✔ plus optional **auto-send** of the program dump 250 ms after a change |
+| LCD: name, description, CC/NRPN number, current and saved value | ✔ (plus LCD OFF) |
+| ADSR / AD envelope graphs editable with the mouse | ✔ |
+| Direct mode, Source (Disk 1 / Disk 2 / Minilogue), Bank, Program, position 000 = file | ✔ |
+| Load / Save / Receive / Send / Rename / Init | ✔ (Init keeps the author) |
+| .syx, .mnlgxdprog, .mnlgxdlib (read), .prog_bin files | ✔ — **.mnlgxdlib can also be written** |
+| Description, author, category, save date (`_AddInfo`) | ✔ (`name_AddInfo.xml` next to .syx files; inside prog_info for .mnlgxdprog) |
+| Global parameters (Request / Send) | ✔ |
+| Librarian: 3 banks × 500, load/save/init/receive/send/clear/export list | ✔ |
+| Program actions: load, init, insert file, save to file, buffer → slot, move, copy, multi-copy (as-is / collated), swap, comparisons | ✔ |
+| Clean dump (`_CleanDump.syx`), BankAutoSave, `*` on unsaved banks | ✔ |
+| Morphing with section locks, Morph 0% / 100%, CC 100 | ✔ plus a **"Morph" automation parameter** |
+| Note / Motion sequencer view | ✔ (read-only, as in the original) |
+| USER module names (osc / mod fx / delay / reverb) | ✔ |
+| Program information display and export (7 modes) | ✔ |
+| Confirmation switches, save mode, transfer speed, zoom with memory | ✔ |
+| Device Inquiry + retry button | ✔ (the MIDI channel is picked up automatically from the synth's reply) |
 
-## Pobranie gotowych wersji (Windows / macOS)
+Values are shown the way the synth shows them: Voice Mode Depth as Duo / detune / chord / arp pattern
+depending on the voice mode, LFO rate as a note value in BPM mode, pitch in cents, and so on.
 
-Repozytorium zawiera workflow GitHub Actions, który buduje wszystko automatycznie:
+## Download (Windows / macOS)
 
-1. Utwórz repozytorium na GitHubie i wypchnij do niego ten katalog.
-2. Zakładka **Actions** → ostatni przebieg „Build” → sekcja **Artifacts**:
-   `XD-Editor-Windows` (VST3 + .exe) i `XD-Editor-macOS` (VST3 + AU + .app, universal arm64/x86_64).
-3. Tag `v1.0.0` (`git tag v1.0.0 && git push --tags`) dodatkowo tworzy Release z plikami .zip.
+Pre-built binaries are produced by GitHub Actions on every push:
 
-## Instalacja
+* Go to the **Actions** tab → latest **Build** run → **Artifacts**:
+  `XD-Editor-Windows` (VST3 + .exe) and `XD-Editor-macOS` (VST3 + AU + .app, universal arm64/x86_64).
+* Tagged versions (`v1.0.0`, …) are also published under **Releases** as .zip files.
 
-**Windows:** skopiuj folder `XD Editor.vst3` do `C:\Program Files\Common Files\VST3\`. `XD Editor.exe` to wersja samodzielna.
+## Installation
 
-**macOS:** `XD Editor.vst3` → `~/Library/Audio/Plug-Ins/VST3/`, `XD Editor.component` → `~/Library/Audio/Plug-Ins/Components/`
-(Logic używa AU). Ponieważ build nie jest notaryzowany, zdejmij kwarantannę:
+**Windows:** copy the `XD Editor.vst3` folder to `C:\Program Files\Common Files\VST3\`.
+`XD Editor.exe` is the standalone version. The build is not code-signed, so SmartScreen may warn you —
+choose *More info → Run anyway*.
+
+**macOS:** copy `XD Editor.vst3` to `~/Library/Audio/Plug-Ins/VST3/` and `XD Editor.component` to
+`~/Library/Audio/Plug-Ins/Components/` (Logic uses the AU). The build is not notarised, so remove the
+quarantine flag once:
 
 ```
 xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"XD Editor.vst3" ~/Library/Audio/Plug-Ins/Components/"XD Editor.component"
 ```
 
-## Konfiguracja MIDI (zakładka Settings & Info)
+## MIDI setup (Settings & Info tab)
 
-* **Wejście:** `minilogue xd KBD/KNOB` (USB) lub port MIDI DIN. **Wyjście:** `minilogue xd SOUND`.
-* **Kanał** ustawia się sam po udanym Device Inquiry (kanał globalny syntezatora).
-* **Trasa wyjścia:**
-  * *port MIDI urządzenia* (domyślnie) — wtyczka sama rozmawia z syntezatorem; SysEx działa w każdym DAW
-    (także w Ableton, który nie przepuszcza SysEx z wtyczek). Nuty ze ścieżki DAW przechodzą do syntezatora
-    („Thru: host notes → synth”). W DAW wyłącz wtedy ten sam port dla ścieżek, żeby nie dublować nut
-    (na Windows port może być otwarty tylko przez jeden program).
-  * *przez DAW* — wtyczka wysyła wszystko na swoje wyjście MIDI, a DAW kieruje je do syntezatora.
-  * *oba*.
-* Jeśli syntezator wysyła CC do DAW, włącz „Host MIDI in = synth feedback” — ruchy gałek syntezatora
-  zaktualizują panel i mogą być nagrywane jako automatyka.
+* **Input:** `minilogue xd KBD/KNOB` (USB) or the MIDI DIN port. **Output:** `minilogue xd SOUND`.
+  With the generic Windows driver the ports may be called `minilogue xd` / `MIDIIN2 (minilogue xd)` —
+  pick the one on which knob movements arrive.
+* The **MIDI channel** is set automatically from the Device Inquiry reply (the synth's global channel).
+* **Output route:**
+  * *MIDI device port* (default) — the plugin talks to the synth directly, so SysEx works in every DAW
+    (including Ableton, which does not pass SysEx from plugins). Notes from the DAW track are forwarded to the
+    synth ("Thru: host notes → synth"). Disable the same port for your DAW tracks to avoid doubled notes
+    (on Windows a MIDI port can only be opened by one application at a time).
+  * *via the DAW* — everything goes to the plugin's MIDI output and the DAW routes it to the synth.
+  * *both*.
+* If the synth's CCs reach the DAW track, enable "Host MIDI in = synth feedback" so turning knobs on the synth
+  updates the panel and can be recorded as automation.
+* Close other MIDI tools (MIDI-OX, Korg Librarian) before starting XD Editor on Windows.
 
-## Praca w DAW (jak edytor Moog)
+## Working in a DAW
 
-* Każda instancja zapisuje w projekcie: bieżący patch (wszystkie 1024 bajty, łącznie z sekwencją),
-  wersję „zapisaną” (do porównań), opis/autora, ścieżki do plików banków, stan panelu i blokady morphingu.
-* Po otwarciu projektu patch jest wysyłany do bufora syntezatora (~0,7 s po wczytaniu) — opcja
-  **Send patch on project load**. Opcja **Send patch when editor opens** wysyła patch danej ścieżki,
-  gdy otworzysz jej okno (przydatne przy kilku ścieżkach z jednym syntezatorem).
-* Presety DAW (Cubase .vstpreset, Reaper, Studio One, Ableton, Logic .aupreset, track presety) działają,
-  bo zapisują ten sam stan.
-* Wszystkie ~120 parametrów + „Morph” są dostępne do automatyzacji, ze stabilnymi ID (nazwa parametru,
-  nie numer), więc dodanie parametrów w przyszłości nie rozsypie automatyki.
-* Przy wielu instancjach dane przychodzące z syntezatora trafiają do instancji, z którą ostatnio pracowałeś.
+* Each instance stores in the project: the current patch (all 1024 bytes including the sequence), the "saved"
+  version (for comparisons), description/author, bank file paths, panel state and morph locks.
+* When the project is opened the patch is sent to the synth's edit buffer (~0.7 s after loading) —
+  option **Send patch on project load**. **Send patch when editor opens** sends a track's patch when you open
+  its plugin window (handy with several tracks using one synth).
+* DAW presets (Cubase .vstpreset, Reaper, Studio One, Ableton, Logic .aupreset, track presets) work because they
+  store the same state.
+* All ~120 parameters plus "Morph" can be automated. Parameter IDs are names, not numbers, so future versions
+  won't break existing automation.
+* With several instances, data coming from the synth goes to the instance you last worked with.
 
-## Budowanie lokalnie
+## Building from source
 
-Wymagania: CMake ≥ 3.22, kompilator C++17 (Visual Studio 2022 / Xcode 15 / GCC 11+). JUCE 8.0.4 pobiera się
-automatycznie (albo wskaż własny: `-DJUCE_DIR=...`).
+Requirements: CMake ≥ 3.22 and a C++17 compiler (Visual Studio 2022 / Xcode 15 / GCC 11+). JUCE 8.0.4 is
+downloaded automatically (or point to your own checkout with `-DJUCE_DIR=...`).
 
 ```
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-Wyniki: `build/XDEditor_artefacts/Release/{VST3,AU,Standalone}`.
-Testy: `XDCoreTests` (format danych, pliki, morphing) i `XDProcessorTests` (MIDI, stan DAW, transfer banku z symulowanym syntezatorem).
-Na Linuksie potrzebne pakiety: `libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev`.
+Output: `build/XDEditor_artefacts/Release/{VST3,AU,Standalone}`.
+Tests: `XDCoreTests` (data format, files, morphing) and `XDProcessorTests` (MIDI, DAW state, bank transfer
+against a simulated synth). `XDCoreTests <file>` prints a summary of any .syx / .mnlgxdlib bank.
+On Linux you need: `libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev`.
 
-## Co zostało sprawdzone, a czego nie
+## Status
 
-Sprawdzone: kompilacja (GCC i Clang, bez ostrzeżeń), testy jednostkowe i integracyjne, walidacja VST3
-narzędziem **pluginval (strictness 7, z testami GUI): SUCCESS**.
+* The CC/NRPN map, value lists (joystick/CV targets, micro tunings, arp rates, arp patterns/chords, motion
+  parameter IDs) and the USER SLOT STATUS format follow the official
+  **KORG minilogue xd MIDI Implementation rev. 1.01**.
+* The data format is verified against a real 500-program bank exported from Korg Sound Librarian
+  (names, voice modes, effects, motion sequences; out-of-range values found in real patches are preserved).
+* Confirmed on hardware: 10-bit knob values are sent as CC63 (low 3 bits) followed by the parameter CC.
+* Validated with **pluginval (strictness 7, including GUI tests)**; builds without warnings on GCC and Clang.
 
-Mapa CC/NRPN, listy wartości (cele joysticka/CV, mikrostroje, podziały arpeggiatora, wzory arp/akordy,
-parametry motion sequencera) i format odpowiedzi USER SLOT STATUS są zgodne z oficjalnym dokumentem
-**KORG minilogue xd MIDI Implementation rev. 1.01**. Format danych sprawdzony na prawdziwym banku 500 programów
-z Korg Sound Librarian (wczytanie, nazwy, tryby, efekty, motion sequence, wartości spoza zakresu zachowane bez zmian).
+**Not yet tested end-to-end with the synth** — reports are very welcome (open an Issue), especially for:
+bank receive/send and writing to slots (Program Data Dump 0x4C), global parameters, USER module names.
 
-**Jeszcze nie testowane na żywym syntezatorze** (komunikacja w czasie rzeczywistym). Warto sprawdzić:
-
-* reakcję syntezatora na gałki panelu (CC / NRPN) i odwrotnie,
-* odbiór i wysyłanie banku oraz zapis do slotów (Program Data Dump 0x4C),
-* nazwy modułów USER (pusty slot syntezator zgłasza błędem → nazwa `EMPTYn`).
-
-Jeśli coś zachowuje się inaczej, poprawka to zwykle jedna linia w `Source/core/Params.cpp` (tabela parametrów).
-
-## Struktura
+## Project layout
 
 ```
-Source/core/      format programu (1024 B), tabela parametrów, SysEx, pliki, raporty, morphing  (bez GUI)
-Source/MidiEngine współdzielone porty MIDI, parser CC/NRPN
-Source/PluginProcessor  logika: parametry/automatyka, wysyłanie/odbiór, transfery, stan projektu DAW
-Source/Librarian  operacje na bankach
-Source/gui/       wygląd, kontrolki, 5 zakładek
-Tests/            testy
+Source/core/            program format (1024 bytes), parameter table, SysEx, files, reports, morphing (no GUI)
+Source/MidiEngine       shared MIDI ports, CC/NRPN parser
+Source/PluginProcessor  parameters/automation, send/receive, transfers, DAW project state
+Source/Librarian        bank operations
+Source/gui/             look & feel, controls, the five tabs
+Tests/                  unit and integration tests
 ```
 
-## Licencja
+Most hardware quirks are a one-line change in the parameter table in `Source/core/Params.cpp`.
 
-Kod używa frameworka JUCE 8 (licencja AGPLv3 lub komercyjna). Do własnego użytku nie ma ograniczeń;
-jeśli będziesz dystrybuować binarki, rób to na zasadach AGPLv3 (z kodem źródłowym) albo z licencją JUCE.
-„Korg” i „minilogue” są znakami towarowymi Korg Inc.; projekt nie jest z nią związany.
+## License
+
+XD Editor is free software released under the **GNU AGPLv3** (see `LICENSE`), the same license as the JUCE
+framework it is built on when used without a commercial JUCE license.
+
+"Korg" and "minilogue" are trademarks of Korg Inc. This project is not affiliated with or endorsed by Korg.
+Thanks to Sunny Synths for the original Ctrlr panel and its documentation.

@@ -20,7 +20,7 @@ XDEditor::XDEditor (XDProcessor& p) : AudioProcessorEditor (p), proc (p), lcd (p
         content.addAndMakeVisible (tabButtons[i]);
     }
     lcdOffButton.setClickingTogglesState (true);
-    lcdOffButton.setTooltip (u ("Wygasza wyświetlacz (np. przy automatyce wielu parametrów albo morphingu)."));
+    lcdOffButton.setTooltip (u ("Blanks the display (useful while automating many parameters or morphing)."));
     lcdOffButton.onClick = [this] { proc.lcdOff = lcdOffButton.getToggleState(); proc.uiNotify (XDProcessor::cLcd); };
     content.addAndMakeVisible (lcdOffButton);
 
@@ -28,12 +28,12 @@ XDEditor::XDEditor (XDProcessor& p) : AudioProcessorEditor (p), proc (p), lcd (p
     content.addAndMakeVisible (lcd);
 
     directButton.setClickingTogglesState (true);
-    directButton.setTooltip (u ("Tryb Direct: pokrętła Bank/Program przełączają programy bezpośrednio w syntezatorze."));
+    directButton.setTooltip (u ("Direct mode: the Bank/Program knobs switch programs directly on the synth."));
     directButton.onClick = [this]
     {
         proc.setDirectMode (directButton.getToggleState());
         if (directButton.getToggleState() && ! proc.directMode)
-            inform (true, "Direct", u ("Tryb Direct wymaga połączenia z syntezatorem."), true);
+            inform (true, "Direct", u ("Direct mode needs a connection to the synth."), true);
         refreshSelectors();
     };
     content.addAndMakeVisible (directButton);
@@ -52,8 +52,8 @@ XDEditor::XDEditor (XDProcessor& p) : AudioProcessorEditor (p), proc (p), lcd (p
     progKnob.valueText = [] (double v) { return v < 0.5 ? juce::String ("000 (file)") : juce::String ((int) v).paddedLeft ('0', 3); };
     bankKnob.slider.onValueChange = [this] { bankKnob.repaint(); selectorsChanged(); };
     progKnob.slider.onValueChange = [this] { progKnob.repaint(); selectorsChanged(); };
-    bankKnob.slider.setTooltip (u ("Bank 0-4 (po 100 programów)."));
-    progKnob.slider.setTooltip (u ("Program 1-100. Pozycja 000 (skrajnie w lewo) = operacje na pliku lub buforze syntezatora."));
+    bankKnob.slider.setTooltip (u ("Bank 0-4 (100 programs each)."));
+    progKnob.slider.setTooltip (u ("Program 1-100. Position 000 (fully left) = work with a file or the synth's edit buffer."));
     content.addAndMakeVisible (bankKnob);
     content.addAndMakeVisible (progKnob);
 
@@ -65,10 +65,10 @@ XDEditor::XDEditor (XDProcessor& p) : AudioProcessorEditor (p), proc (p), lcd (p
     initButton.onClick = [this] { doInit(); };
     for (auto* b : { &loadButton, &saveButton, &receiveButton, &sendButton, &renameButton, &initButton })
         content.addAndMakeVisible (*b);
-    loadButton.setTooltip (u ("Wczytaj program z pliku (pozycja 000) albo z wybranego banku i wyślij do bufora syntezatora."));
-    saveButton.setTooltip (u ("Zapisz program do pliku (pozycja 000) albo do wybranego slotu banku."));
-    receiveButton.setTooltip (u ("Odbierz program z syntezatora (bufor lub wybrany slot)."));
-    sendButton.setTooltip (u ("Wyślij bieżący program do bufora syntezatora."));
+    loadButton.setTooltip (u ("Load a program from a file (position 000) or from the selected bank and send it to the synth's edit buffer."));
+    saveButton.setTooltip (u ("Save the program to a file (position 000) or to the selected bank slot."));
+    receiveButton.setTooltip (u ("Receive a program from the synth (edit buffer or selected slot)."));
+    sendButton.setTooltip (u ("Send the current program to the synth's edit buffer."));
 
     mainTab = std::make_unique<MainTab> (*this);
     programTab = std::make_unique<ProgramTab> (*this);
@@ -96,8 +96,8 @@ XDEditor::XDEditor (XDProcessor& p) : AudioProcessorEditor (p), proc (p), lcd (p
     if (proc.getSettings().welcome && ! proc.welcomeShown)
     {
         proc.welcomeShown = true;
-        proc.lcdMessage (u ("XD Editor 1.0 - edytor i librarian minilogue xd.  ")
-                         + (proc.isConnected() ? u ("Połączono (OS ") + proc.getOsVersion() + ")" : u ("Szukam syntezatora...")), 5000);
+        proc.lcdMessage (u ("XD Editor 1.0 - minilogue xd editor & librarian.  ")
+                         + (proc.isConnected() ? u ("Connected (OS ") + proc.getOsVersion() + ")" : u ("Looking for the synth...")), 5000);
     }
 }
 
@@ -206,7 +206,7 @@ void XDEditor::confirm (bool ask, const juce::String& title, const juce::String&
 {
     if (! ask) { then(); return; }
     juce::Component::SafePointer<XDEditor> safe (this);
-    juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::QuestionIcon, title, msg, "OK", "Anuluj", this,
+    juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::QuestionIcon, title, msg, "OK", "Cancel", this,
         juce::ModalCallbackFunction::create ([safe, then] (int r) { if (r != 0 && safe != nullptr) then(); }));
 }
 
@@ -224,7 +224,7 @@ void XDEditor::askText (const juce::String& title, const juce::String& msg, cons
     w->addTextEditor ("text", initial);
     if (auto* te = w->getTextEditor ("text")) { te->setInputRestrictions (maxLen); te->selectAll(); }
     w->addButton ("OK", 1, juce::KeyPress (juce::KeyPress::returnKey));
-    w->addButton ("Anuluj", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    w->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
     juce::Component::SafePointer<XDEditor> safe (this);
     w->enterModalState (true, juce::ModalCallbackFunction::create ([w, safe, then] (int r)
     {
@@ -266,8 +266,8 @@ void XDEditor::loadProgramFile (const juce::File& f, std::function<void (bool)> 
     proc.getSettings().lastProgramDir = f.getParentDirectory().getFullPathName();
     const bool canSend = proc.canTalkToSynth();
     proc.loadProgram (p, info, canSend);
-    if (! canSend) inform (true, "Load", u ("Program wczytany do panelu, ale NIE do syntezatora (brak połączenia)."), true);
-    else inform (proc.getSettings().loadOkConfirm, "Load", u ("Wczytano \"") + p.getName() + u ("\" i wysłano do bufora minilogue xd."));
+    if (! canSend) inform (true, "Load", u ("Program loaded into the panel but NOT into the synth (no connection)."), true);
+    else inform (proc.getSettings().loadOkConfirm, "Load", u ("Loaded \"") + p.getName() + u ("\" and sent to the minilogue xd edit buffer."));
     if (after) after (true);
 }
 
@@ -277,22 +277,22 @@ void XDEditor::doLoad()
     if (proc.directMode) { doReceive(); return; }
     if (proc.slotSel == 0)
     {
-        chooseFile (false, u ("Wczytaj program minilogue xd"), "*.syx;*.mnlgxdprog;*.prog_bin;*.mnlgxdlib",
+        chooseFile (false, u ("Load minilogue xd program"), "*.syx;*.mnlgxdprog;*.prog_bin;*.mnlgxdlib",
                     dirOr (s.lastProgramDir), [this] (juce::File f) { loadProgramFile (f); });
         return;
     }
     auto& b = proc.bank (proc.sourceBank);
-    if (! b.loaded) { inform (true, "Load", u ("Bank ") + bankTitle ((BankId) proc.sourceBank) + u (" nie jest wczytany (zakładka Librarian)."), true); return; }
+    if (! b.loaded) { inform (true, "Load", u ("Bank ") + bankTitle ((BankId) proc.sourceBank) + u (" is not loaded (see the Librarian tab)."), true); return; }
     const int slot = proc.slotSel - 1;
     const auto& prog = b.progs[(size_t) slot];
-    confirm (s.loadConfirm, "Load", u ("Wczytać program ") + slotTitle (proc.sourceBank, slot) + " \"" + prog.getName() + "\"?",
+    confirm (s.loadConfirm, "Load", u ("Load program ") + slotTitle (proc.sourceBank, slot) + " \"" + prog.getName() + "\"?",
              [this, slot]
              {
                  auto& bank = proc.bank (proc.sourceBank);
                  const bool canSend = proc.canTalkToSynth();
                  proc.loadProgram (bank.progs[(size_t) slot], bank.info[(size_t) slot], canSend);
-                 if (! canSend) inform (true, "Load", u ("Program wczytany do panelu, ale NIE do syntezatora (brak połączenia)."), true);
-                 else inform (proc.getSettings().loadOkConfirm, "Load", u ("Wczytano i wysłano do bufora minilogue xd."));
+                 if (! canSend) inform (true, "Load", u ("Program loaded into the panel but NOT into the synth (no connection)."), true);
+                 else inform (proc.getSettings().loadOkConfirm, "Load", u ("Loaded and sent to the minilogue xd edit buffer."));
              });
 }
 
@@ -306,7 +306,7 @@ void XDEditor::doSave()
         const auto base = proc.getCurrent().getName().trim().replaceCharacters ("/\\:*?\"<>|", "_________");
         const bool syx = s.saveMode != 1;
         auto initial = dirOr (s.lastProgramDir).getChildFile ((base.isEmpty() ? juce::String ("program") : base) + (syx ? ".syx" : ".mnlgxdprog"));
-        chooseFile (true, u ("Zapisz program"), syx ? "*.syx" : "*.mnlgxdprog", initial, [this, syx] (juce::File f)
+        chooseFile (true, u ("Save program"), syx ? "*.syx" : "*.mnlgxdprog", initial, [this, syx] (juce::File f)
         {
             auto& st = proc.getSettings();
             st.lastProgramDir = f.getParentDirectory().getFullPathName();
@@ -323,17 +323,17 @@ void XDEditor::doSave()
             st.save();
             if (! r.ok) { inform (true, "Save", r.message, true); return; }
             proc.markCurrentSaved();
-            inform (st.saveOkConfirm, "Save", u ("Zapisano: ") + f.getFileNameWithoutExtension());
+            inform (st.saveOkConfirm, "Save", u ("Saved: ") + f.getFileNameWithoutExtension());
         });
         return;
     }
 
     auto& b = proc.bank (proc.sourceBank);
-    if (! b.loaded) { inform (true, "Save", u ("Bank ") + bankTitle ((BankId) proc.sourceBank) + u (" nie jest wczytany. Utwórz pusty bank albo wczytaj plik w zakładce Librarian."), true); return; }
+    if (! b.loaded) { inform (true, "Save", u ("Bank ") + bankTitle ((BankId) proc.sourceBank) + u (" is not loaded. Create an empty bank or load a file in the Librarian tab."), true); return; }
     const int slot = proc.slotSel - 1;
-    juce::String msg = u ("Zapisać \"") + proc.getCurrent().getName() + u ("\" w ") + slotTitle (proc.sourceBank, slot)
-                     + u (" (zastąpi \"") + b.progs[(size_t) slot].getName() + "\")?";
-    if (proc.sourceBank == (int) BankId::Synth) msg << u ("\n\nProgram zostanie też zapisany w pamięci syntezatora.");
+    juce::String msg = u ("Save \"") + proc.getCurrent().getName() + u ("\" to ") + slotTitle (proc.sourceBank, slot)
+                     + u (" (replaces \"") + b.progs[(size_t) slot].getName() + "\")?";
+    if (proc.sourceBank == (int) BankId::Synth) msg << u ("\n\nThe program will also be written to the synth's memory.");
     confirm (s.actionsConfirm, "Save", msg, [this, slot]
     {
         auto m = lib::putProgram (proc, proc.sourceBank, slot, proc.getCurrent(), proc.currentInfo());
@@ -346,15 +346,15 @@ void XDEditor::doReceive()
 {
     auto& s = proc.getSettings();
     const bool buffer = proc.directMode || proc.slotSel == 0;
-    juce::String what = buffer ? u ("bieżący program (bufor) z syntezatora")
-                               : u ("program ") + juce::String (proc.slotSel).paddedLeft ('0', 3) + u (" z pamięci syntezatora");
-    confirm (s.receiveConfirm, "Receive", u ("Odebrać ") + what + u ("?\nNiezapisane zmiany w panelu zostaną zastąpione."), [this, buffer]
+    juce::String what = buffer ? u ("the current program (edit buffer) from the synth")
+                               : u ("program ") + juce::String (proc.slotSel).paddedLeft ('0', 3) + u (" from the synth's memory");
+    confirm (s.receiveConfirm, "Receive", u ("Receive ") + what + u ("?\nUnsaved changes in the panel will be replaced."), [this, buffer]
     {
         juce::Component::SafePointer<XDEditor> safe (this);
         auto done = [safe] (bool ok, juce::String msg)
         {
             if (safe == nullptr) return;
-            if (ok) safe->inform (safe->proc.getSettings().receiveOkConfirm, "Receive", u ("Odebrano: ") + msg);
+            if (ok) safe->inform (safe->proc.getSettings().receiveOkConfirm, "Receive", u ("Received: ") + msg);
             else safe->inform (true, "Receive", msg, true);
         };
         if (buffer) proc.requestCurrentProgram (done);
@@ -365,22 +365,22 @@ void XDEditor::doReceive()
 void XDEditor::doSend (bool mainButton)
 {
     auto& s = proc.getSettings();
-    confirm (mainButton || s.sendConfirm, "Send", u ("Wysłać \"") + proc.getCurrent().getName() + u ("\" do bufora minilogue xd?"), [this, mainButton]
+    confirm (mainButton || s.sendConfirm, "Send", u ("Send \"") + proc.getCurrent().getName() + u ("\" to the minilogue xd edit buffer?"), [this, mainButton]
     {
-        if (! proc.sendCurrentToSynth()) { inform (true, "Send", u ("Brak połączenia z syntezatorem."), true); return; }
-        inform (mainButton || proc.getSettings().sendOkConfirm, "Send", u ("Program wysłany do bufora."));
+        if (! proc.sendCurrentToSynth()) { inform (true, "Send", u ("No connection to the synth."), true); return; }
+        inform (mainButton || proc.getSettings().sendOkConfirm, "Send", u ("Program sent to the edit buffer."));
     });
 }
 
 void XDEditor::doRename()
 {
-    askText ("Rename", u ("Nazwa programu (maks. 12 znaków ASCII):"), proc.getCurrent().getName(), 12,
+    askText ("Rename", u ("Program name (max. 12 ASCII characters):"), proc.getCurrent().getName(), 12,
              [this] (juce::String name) { proc.renameCurrent (name); });
 }
 
 void XDEditor::doAuthor()
 {
-    askText ("Author", u ("Autor programu (maks. 15 znaków):"), proc.currentInfo().author, 15, [this] (juce::String a)
+    askText ("Author", u ("Program author (max. 15 characters):"), proc.currentInfo().author, 15, [this] (juce::String a)
     {
         proc.currentInfo().author = a.trim();
         proc.infoEdited();
@@ -389,7 +389,7 @@ void XDEditor::doAuthor()
 
 void XDEditor::doInit()
 {
-    confirm (proc.getSettings().actionsConfirm, "Init", u ("Wczytać program Init? Niezapisane zmiany zostaną utracone."), [this]
+    confirm (proc.getSettings().actionsConfirm, "Init", u ("Load the Init program? Unsaved changes will be lost."), [this]
     {
         AddInfo info;
         info.author = proc.currentInfo().author; // keep the author, like the original panel

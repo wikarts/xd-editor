@@ -418,7 +418,7 @@ void XDProcessor::handleSysex (const juce::MidiMessage& m)
             {
                 loadProgram (prog, {}, false);
                 if (pending.type == Pending::CurrentToPanel) finishPending (true, prog.getName());
-                else lcdMessage (juce::String::fromUTF8 ("Odebrano program: ") + prog.getName());
+                else lcdMessage (juce::String::fromUTF8 ("Program received: ") + prog.getName());
             }
             break;
         }
@@ -483,7 +483,7 @@ void XDProcessor::handleSysex (const juce::MidiMessage& m)
                 job.nextAt = (juce::uint32) msNow() + 30;
                 break;
             }
-            lcdMessage (juce::String::fromUTF8 ("Syntezator zgłosił błąd odbioru danych."));
+            lcdMessage (juce::String::fromUTF8 ("The synth reported a data error."));
             break;
         default: break;
     }
@@ -492,7 +492,7 @@ void XDProcessor::handleSysex (const juce::MidiMessage& m)
 // ======================================================================= requests
 void XDProcessor::startPending (Pending::Type t, int bankIdx, int slot, Done done, int timeoutMs)
 {
-    if (pending.type != Pending::None) finishPending (false, juce::String::fromUTF8 ("Przerwano poprzednie żądanie."));
+    if (pending.type != Pending::None) finishPending (false, juce::String::fromUTF8 ("Previous request cancelled."));
     pending.type = t;
     pending.bank = bankIdx;
     pending.slot = slot;
@@ -519,7 +519,7 @@ void XDProcessor::deviceInquiry()
     send (sysex::deviceInquiry());
 }
 
-static juce::String noLink() { return juce::String::fromUTF8 ("Brak połączenia z syntezatorem (sprawdź ustawienia MIDI)."); }
+static juce::String noLink() { return juce::String::fromUTF8 ("No connection to the synth (check the MIDI settings)."); }
 
 void XDProcessor::requestCurrentProgram (Done done)
 {
@@ -577,7 +577,7 @@ void XDProcessor::setGlobal (const GlobalField& f, int v)
 void XDProcessor::loadUserNames (Done done)
 {
     if (! canTalkToSynth()) { if (done) done (false, noLink()); return; }
-    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Trwa inny transfer.")); return; }
+    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Another transfer is in progress.")); return; }
     makeActive();
     job = {};
     job.type = Job::UserNames;
@@ -634,13 +634,13 @@ void XDProcessor::bankModified (BankId b, const juce::Array<int>& slots, bool se
             job.bank = (int) BankId::Synth;
             for (auto s : slots) job.slots.push_back (s);
             job.nextAt = (juce::uint32) msNow();
-            job.done = [this] (bool, juce::String) { lcdMessage (juce::String::fromUTF8 ("Zapisano w syntezatorze.")); };
+            job.done = [this] (bool, juce::String) { lcdMessage (juce::String::fromUTF8 ("Written to the synth.")); };
         }
         else if (job.type == Job::SendSlots && job.bank == (int) BankId::Synth)
         {
             for (auto s : slots) job.slots.push_back (s);
         }
-        else lcdMessage (juce::String::fromUTF8 ("Trwa transfer - zmiana nie została wysłana do syntezatora."));
+        else lcdMessage (juce::String::fromUTF8 ("Transfer in progress - the change was not sent to the synth."));
     }
     notify (cBanks);
 }
@@ -663,7 +663,7 @@ void XDProcessor::clearBank (BankId b)
 void XDProcessor::startReceiveBank (Done done)
 {
     if (! canTalkToSynth()) { if (done) done (false, noLink()); return; }
-    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Trwa inny transfer.")); return; }
+    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Another transfer is in progress.")); return; }
     makeActive();
     job = {};
     job.type = Job::ReceiveBank;
@@ -679,7 +679,7 @@ void XDProcessor::startReceiveBank (Done done)
 void XDProcessor::startSendBank (BankId b, Done done)
 {
     if (! canTalkToSynth()) { if (done) done (false, noLink()); return; }
-    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Trwa inny transfer.")); return; }
+    if (isTransferring()) { if (done) done (false, juce::String::fromUTF8 ("Another transfer is in progress.")); return; }
     makeActive();
     job = {};
     job.type = Job::SendSlots;
@@ -704,7 +704,7 @@ void XDProcessor::startSendBank (BankId b, Done done)
 
 void XDProcessor::cancelTransfer()
 {
-    if (job.type != Job::None) finishJob (false, juce::String::fromUTF8 ("Transfer przerwany."));
+    if (job.type != Job::None) finishJob (false, juce::String::fromUTF8 ("Transfer stopped."));
 }
 
 void XDProcessor::finishJob (bool ok, const juce::String& msg)
@@ -735,12 +735,12 @@ void XDProcessor::jobTick (juce::uint32 now)
     if (job.type == Job::SendSlots)
     {
         if (now < job.nextAt) return;
-        if (job.pos >= total) { finishJob (true, juce::String ((int) total) + juce::String::fromUTF8 (" programów wysłanych.")); return; }
+        if (job.pos >= total) { finishJob (true, juce::String ((int) total) + juce::String::fromUTF8 (" programs sent.")); return; }
         const int slot = job.slots[job.pos];
         sendSysex (sysex::programDump (settings->channel, slot, banks[(size_t) job.bank].progs[(size_t) slot]));
         ++job.pos;
         job.nextAt = now + (juce::uint32) settings->transferMs;
-        if (total > 1) progress ("Wysyłanie");
+        if (total > 1) progress ("Sending");
         return;
     }
 
@@ -764,7 +764,7 @@ void XDProcessor::jobTick (juce::uint32 now)
 
     if (job.pos >= total)
     {
-        if (userNames) { finishJob (true, juce::String::fromUTF8 ("Nazwy modułów użytkownika wczytane.")); return; }
+        if (userNames) { finishJob (true, juce::String::fromUTF8 ("User module names loaded.")); return; }
         auto& b = banks[(size_t) BankId::Synth];
         const auto file = b.file;
         b.clear();
@@ -774,8 +774,8 @@ void XDProcessor::jobTick (juce::uint32 now)
         b.dirty = true;
         b.file = file;
         const int errors = job.errors;
-        finishJob (errors == 0, errors == 0 ? juce::String::fromUTF8 ("Odebrano 500 programów.")
-                                            : juce::String::fromUTF8 ("Odebrano z błędami: ") + juce::String (errors) + juce::String::fromUTF8 (" programów nie dotarło."));
+        finishJob (errors == 0, errors == 0 ? juce::String::fromUTF8 ("500 programs received.")
+                                            : juce::String::fromUTF8 ("Received with errors: ") + juce::String (errors) + juce::String::fromUTF8 (" programs did not arrive."));
         return;
     }
 
@@ -786,7 +786,7 @@ void XDProcessor::jobTick (juce::uint32 now)
         send (sysex::programRequest (settings->channel, e));
     job.waiting = true;
     job.deadline = now + (juce::uint32) (userNames ? 700 : juce::jmax (1500, settings->transferMs * 4));
-    progress (userNames ? "Nazwy USER" : "Odbieranie");
+    progress (userNames ? "USER names" : "Receiving");
 }
 
 // ======================================================================= selection / morph
@@ -870,14 +870,14 @@ void XDProcessor::timerCallback()
         sendCurrentToSynth();
     }
     if (pending.type != Pending::None && now > pending.deadline)
-        finishPending (false, juce::String::fromUTF8 ("Brak odpowiedzi z syntezatora."));
+        finishPending (false, juce::String::fromUTF8 ("No response from the synth."));
     jobTick (now);
 
     if (recallSendPending && now >= recallSendAt)
     {
         recallSendPending = false;
         if (canTalkToSynth() && sendCurrentToSynth())
-            lcdMessage (juce::String::fromUTF8 ("Przywrócono patch z projektu: ") + current.getName(), 4000);
+            lcdMessage (juce::String::fromUTF8 ("Patch recalled from project: ") + current.getName(), 4000);
     }
     if (lcd.message.isNotEmpty() && ! lcd.progress && now > lcd.messageUntil)
     {
@@ -912,7 +912,7 @@ juce::String XDProcessor::buildInfoReport (ReportKind k) const
         {
             const int s = libSrcFirst();
             if (! juce::isPositiveAndBelow (libSrcBank, numBanks) || s < 0 || ! juce::isPositiveAndBelow (libDstBank, numBanks) || libDstSlot < 0)
-                return juce::String::fromUTF8 ("Wybierz program źródłowy (lewy klik) i docelowy (prawy klik) w zakładce Librarian.");
+                return juce::String::fromUTF8 ("Select a source (left click) and a destination (right click) in the Librarian tab.");
             auto title = [] (int b, int slot) { return bankTitle ((BankId) b) + " " + juce::String (slot + 1).paddedLeft ('0', 3); };
             auto& A = banks[(size_t) libSrcBank];
             auto& B = banks[(size_t) libDstBank];

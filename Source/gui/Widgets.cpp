@@ -458,15 +458,15 @@ void LcdDisplay::paint (juce::Graphics& g)
         g.setColour (col::warn);
         g.setFont (XDLook::mono (13.0f));
         auto line = area.removeFromTop (22);
-        g.drawText (u ("Brak połączenia z minilogue xd."), line, juce::Justification::centredLeft);
+        g.drawText (u ("No connection to the minilogue xd."), line, juce::Justification::centredLeft);
         retryArea = line.removeFromRight (90).reduced (2);
         g.setColour (col::warn.withAlpha (0.25f));
         g.fillRoundedRectangle (retryArea.toFloat(), 3.0f);
         g.setColour (col::text);
-        g.drawText (u ("Ponów"), retryArea, juce::Justification::centred);
+        g.drawText (u ("Retry"), retryArea, juce::Justification::centred);
         g.setColour (col::dim);
         g.setFont (XDLook::mono (12.0f));
-        g.drawFittedText (u ("Ustawienia MIDI: zakładka Settings."), area, juce::Justification::topLeft, 2);
+        g.drawFittedText (u ("MIDI setup: Settings & Info tab."), area, juce::Justification::topLeft, 2);
     }
     else if (lcd.param >= 0)
     {
@@ -493,9 +493,9 @@ void LcdDisplay::paint (juce::Graphics& g)
         auto& names = proc.getSettings().userNames;
         g.setFont (XDLook::mono (13.0f));
         g.setColour (col::lcdText);
-        g.drawText (u ("Bieżąca: ") + formatInContext (d, cur, &names), values.removeFromLeft (values.getWidth() / 2), juce::Justification::centredLeft);
+        g.drawText (u ("Current: ") + formatInContext (d, cur, &names), values.removeFromLeft (values.getWidth() / 2), juce::Justification::centredLeft);
         g.setColour (col::dim);
-        g.drawText (u ("Zapisana: ") + formatInContext (d, proc.getSaved(), &names), values, juce::Justification::centredLeft);
+        g.drawText (u ("Saved: ") + formatInContext (d, proc.getSaved(), &names), values, juce::Justification::centredLeft);
     }
 
     // selector line
@@ -504,14 +504,14 @@ void LcdDisplay::paint (juce::Graphics& g)
     if (proc.directMode)
     {
         sel = "DIRECT  ";
-        sel << (proc.slotSel == 0 ? juce::String (u ("000  bufor syntezatora")) : juce::String (proc.slotSel).paddedLeft ('0', 3) + u ("  (program w syntezatorze)"));
+        sel << (proc.slotSel == 0 ? juce::String (u ("000  synth edit buffer")) : juce::String (proc.slotSel).paddedLeft ('0', 3) + u ("  (program on the synth)"));
     }
     else
     {
         auto& b = const_cast<XDProcessor&> (proc).bank (proc.sourceBank);
         sel = bankTitle ((BankId) proc.sourceBank) + (b.dirty ? "*" : "") + "  ";
-        if (proc.slotSel == 0) sel << u ("000  plik .syx / .mnlgxdprog / bufor XD");
-        else if (! b.loaded) sel << juce::String (proc.slotSel).paddedLeft ('0', 3) << u ("  (bank nie wczytany)");
+        if (proc.slotSel == 0) sel << u ("000  .syx / .mnlgxdprog file / XD buffer");
+        else if (! b.loaded) sel << juce::String (proc.slotSel).paddedLeft ('0', 3) << u ("  (bank not loaded)");
         else sel << juce::String (proc.slotSel).paddedLeft ('0', 3) << "  " << b.progs[(size_t) proc.slotSel - 1].getName();
     }
     g.setColour (col::accent);

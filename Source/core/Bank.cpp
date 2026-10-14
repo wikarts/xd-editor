@@ -166,17 +166,17 @@ static IoResult writeZip (juce::ZipFile::Builder& zb, const juce::File& f)
     juce::TemporaryFile tmp (f);
     {
         juce::FileOutputStream os (tmp.getFile());
-        if (! os.openedOk()) return IoResult::fail ("Nie można zapisać pliku: " + f.getFullPathName());
-        if (! zb.writeToStream (os, nullptr)) return IoResult::fail ("Błąd zapisu archiwum.");
+        if (! os.openedOk()) return IoResult::fail ("Cannot write file: " + f.getFullPathName());
+        if (! zb.writeToStream (os, nullptr)) return IoResult::fail ("Error writing the archive.");
     }
-    if (! tmp.overwriteTargetFileWithTemporary()) return IoResult::fail ("Nie można zapisać pliku: " + f.getFullPathName());
+    if (! tmp.overwriteTargetFileWithTemporary()) return IoResult::fail ("Cannot write file: " + f.getFullPathName());
     return IoResult::success();
 }
 
 // ------------------------------------------------------------------------------------------
 IoResult loadProgram (const juce::File& f, Program& p, AddInfo& a)
 {
-    if (! f.existsAsFile()) return IoResult::fail ("Plik nie istnieje.");
+    if (! f.existsAsFile()) return IoResult::fail ("File does not exist.");
     const auto ext = f.getFileExtension().toLowerCase();
     a = {};
 
@@ -188,20 +188,20 @@ IoResult loadProgram (const juce::File& f, Program& p, AddInfo& a)
         for (int i = 0; i < zip.getNumEntries(); ++i)
             if (zip.getEntry (i)->filename.endsWithIgnoreCase (".prog_bin")) { binName = zip.getEntry (i)->filename; break; }
         if (binName.isEmpty() || ! readZipEntry (zip, binName, mb))
-            return IoResult::fail ("Plik nie zawiera programu (.prog_bin).");
+            return IoResult::fail ("The file contains no program (.prog_bin).");
         if (! p.loadFrom ((const uint8_t*) mb.getData(), mb.getSize()))
-            return IoResult::fail ("Nieprawidłowe dane programu.");
+            return IoResult::fail ("Invalid program data.");
         readProgInfo (zip, binName.upToLastOccurrenceOf (".", false, false) + ".prog_info", a);
         return IoResult::success();
     }
 
     juce::MemoryBlock data;
-    if (! f.loadFileAsData (data)) return IoResult::fail ("Nie można odczytać pliku.");
+    if (! f.loadFileAsData (data)) return IoResult::fail ("Cannot read the file.");
 
     if (ext == ".prog_bin" || (data.getSize() >= (size_t) programSize && std::memcmp (data.getData(), "PROG", 4) == 0))
     {
         if (! p.loadFrom ((const uint8_t*) data.getData(), data.getSize()))
-            return IoResult::fail ("Nieprawidłowy plik .prog_bin.");
+            return IoResult::fail ("Invalid .prog_bin file.");
         a = readSingleAddInfo (f);
         return IoResult::success();
     }
@@ -216,14 +216,14 @@ IoResult loadProgram (const juce::File& f, Program& p, AddInfo& a)
             return IoResult::success();
         }
     }
-    return IoResult::fail ("Plik nie zawiera programu Minilogue XD.");
+    return IoResult::fail ("The file contains no minilogue xd program.");
 }
 
 IoResult saveProgramSyx (const juce::File& f, const Program& p, const AddInfo& a, int channel)
 {
     auto bytes = sysex::currentProgramDump (channel, p);
     if (! f.replaceWithData (bytes.data(), bytes.size()))
-        return IoResult::fail ("Nie można zapisać: " + f.getFullPathName());
+        return IoResult::fail ("Cannot write: " + f.getFullPathName());
     writeSingleAddInfo (f, a);
     return IoResult::success();
 }
@@ -242,7 +242,7 @@ IoResult saveProgramXdProg (const juce::File& f, const Program& p, const AddInfo
 // ------------------------------------------------------------------------------------------
 IoResult loadBank (const juce::File& f, Bank& b, int channel)
 {
-    if (! f.existsAsFile()) return IoResult::fail ("Plik nie istnieje: " + f.getFullPathName());
+    if (! f.existsAsFile()) return IoResult::fail ("File does not exist: " + f.getFullPathName());
     const auto ext = f.getFileExtension().toLowerCase();
     Bank nb;
     nb.clear();
@@ -264,15 +264,15 @@ IoResult loadBank (const juce::File& f, Bank& b, int channel)
                 ++count;
             }
         }
-        if (count == 0) return IoResult::fail ("Brak programów w pliku biblioteki.");
+        if (count == 0) return IoResult::fail ("No programs in the library file.");
         nb.loaded = true;
         nb.file = f;
         b = nb;
-        return IoResult::success (juce::String (count) + " programów wczytanych.");
+        return IoResult::success (juce::String (count) + " programs loaded.");
     }
 
     juce::MemoryBlock data;
-    if (! f.loadFileAsData (data)) return IoResult::fail ("Nie można odczytać pliku.");
+    if (! f.loadFileAsData (data)) return IoResult::fail ("Cannot read the file.");
     int count = 0, other = 0, sequential = 0;
     for (auto& m : sysex::splitMessages (data))
     {
@@ -284,12 +284,12 @@ IoResult loadBank (const juce::File& f, Bank& b, int channel)
         if (nb.progs[(size_t) slot].loadFrom (p.payload.data(), p.payload.size())) ++count;
         else ++other;
     }
-    if (count == 0) return IoResult::fail ("Plik nie zawiera programów Minilogue XD.");
+    if (count == 0) return IoResult::fail ("The file contains no minilogue xd programs.");
 
     nb.loaded = true;
     nb.file = f;
     loadAddInfoBank (f, nb);
-    juce::String msg = juce::String (count) + " programów wczytanych.";
+    juce::String msg = juce::String (count) + " programs loaded.";
 
     const bool clean = count == numSlots && other == 0 && data.getSize() == (size_t) (numSlots * sysex::programDumpSize);
     if (! clean)
@@ -298,8 +298,8 @@ IoResult loadBank (const juce::File& f, Bank& b, int channel)
                        : f.getSiblingFile (f.getFileNameWithoutExtension() + "_CleanDump.syx");
         nb.file = cleanFile;
         auto r = saveBank (cleanFile, nb, channel);
-        if (r.ok) msg << "\nUtworzono oczyszczony plik: " << cleanFile.getFileName();
-        if (other > 0) msg << "\nPominięto " << other << " innych komunikatów (globalne/skale itp.).";
+        if (r.ok) msg << "\nClean dump written: " << cleanFile.getFileName();
+        if (other > 0) msg << "\nSkipped " << other << " other messages (global data, scales, etc.).";
     }
     b = nb;
     return IoResult::success (msg);
@@ -332,7 +332,7 @@ IoResult saveBank (const juce::File& f, Bank& b, int channel)
         os.write (m.data(), m.size());
     }
     if (! f.replaceWithData (os.getData(), os.getDataSize()))
-        return IoResult::fail ("Nie można zapisać: " + f.getFullPathName());
+        return IoResult::fail ("Cannot write: " + f.getFullPathName());
     saveAddInfoBank (f, b);
     b.dirty = false;
     return IoResult::success();
@@ -351,7 +351,7 @@ IoResult exportBankList (const juce::File& f, const Bank& b, const juce::String&
         if (in.description.isNotEmpty()) s << "  - " << in.description.replaceCharacters ("\r\n", "  ");
         s << "\n";
     }
-    return f.replaceWithText (s) ? IoResult::success() : IoResult::fail ("Nie można zapisać pliku.");
+    return f.replaceWithText (s) ? IoResult::success() : IoResult::fail ("Cannot write the file.");
 }
 
 } // namespace files

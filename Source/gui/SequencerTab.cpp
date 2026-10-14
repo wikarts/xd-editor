@@ -30,7 +30,7 @@ void SequencerTab::paint (juce::Graphics& g)
     g.drawText (h, 16, 4, 1240, 22, juce::Justification::centredLeft);
     g.setColour (col::dim);
     g.setFont (juce::FontOptions (11.5f));
-    g.drawText (u ("Podgląd (tylko odczyt) danych sekwencera bieżącego programu."), 16, 4, 1240, 22, juce::Justification::centredRight);
+    g.drawText (u ("Read-only view of the current program's sequencer data."), 16, 4, 1240, 22, juce::Justification::centredRight);
 
     // ---------------- note sequencer
     auto noteArea = juce::Rectangle<int> (8, 30, 1264, 300);
@@ -79,7 +79,7 @@ void SequencerTab::paint (juce::Graphics& g)
     }
     g.setColour (col::dim);
     g.setFont (juce::FontOptions (11.0f));
-    g.drawText (u ("Słupki: dynamika pierwszej nuty kroku, pod spodem długość (gate)."), 18, 314, 600, 14, juce::Justification::centredLeft);
+    g.drawText (u ("Bars: velocity of the first note of each step, gate time below."), 18, 314, 600, 14, juce::Justification::centredLeft);
 
     // ---------------- motion sequencer
     auto motionArea = juce::Rectangle<int> (8, 338, 1264, 306);

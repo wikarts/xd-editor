@@ -34,7 +34,7 @@ MainTab::MainTab (XDEditor& e) : proc (e.proc)
     {
         auto* b = voiceButtons.add (new juce::TextButton (vm[i]));
         b->setClickingTogglesState (false);
-        b->setTooltip (juce::String::fromUTF8 ("Tryb głosów - zmiana jest wysyłana jako zrzut programu (brak CC)."));
+        b->setTooltip (juce::String::fromUTF8 ("Voice mode (sent via NRPN)."));
         const int value = 4 - i;
         b->onClick = [this, value]
         {

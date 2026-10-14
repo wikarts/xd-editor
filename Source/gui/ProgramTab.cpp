@@ -20,7 +20,7 @@ ProgramTab::ProgramTab (XDEditor& e) : ed (e), proc (e.proc)
 
     for (auto* b : { &send1, &send2 })
     {
-        b->setTooltip (u ("Wysyła pełny zrzut programu - potrzebne po zmianie parametrów oznaczonych na zielono (bez CC)."));
+        b->setTooltip (u ("Sends the whole program - needed after changing green parameters (no CC/NRPN)."));
         b->onClick = [this] { ed.doSend (false); };
         b->setColour (juce::TextButton::buttonColourId, col::green.darker (0.6f));
         addAndMakeVisible (b);
@@ -28,7 +28,7 @@ ProgramTab::ProgramTab (XDEditor& e) : ed (e), proc (e.proc)
 
     description.setMultiLine (true, true);
     description.setReturnKeyStartsNewLine (false);
-    description.setTextToShowWhenEmpty (u ("Opis programu (Enter zatwierdza)"), col::dim);
+    description.setTextToShowWhenEmpty (u ("Program description (Enter to confirm)"), col::dim);
     description.onReturnKey = [this] { proc.currentInfo().description = description.getText(); proc.infoEdited(); };
     description.onFocusLost = description.onReturnKey;
     addAndMakeVisible (description);
@@ -36,7 +36,7 @@ ProgramTab::ProgramTab (XDEditor& e) : ed (e), proc (e.proc)
     authorButton.onClick = [this] { ed.doAuthor(); };
     addAndMakeVisible (authorButton);
     auto cats = categories();
-    for (int i = 0; i < cats.size(); ++i) category.addItem (i == 0 ? u ("(brak kategorii)") : cats[i], i + 1);
+    for (int i = 0; i < cats.size(); ++i) category.addItem (i == 0 ? u ("(no category)") : cats[i], i + 1);
     category.onChange = [this]
     {
         const int i = category.getSelectedId() - 1;
@@ -53,16 +53,16 @@ ProgramTab::ProgramTab (XDEditor& e) : ed (e), proc (e.proc)
         proc.requestGlobals ([safe] (bool ok, juce::String msg)
         {
             if (safe == nullptr) return;
-            if (ok) safe->proc.lcdMessage (u ("Parametry globalne odebrane."));
+            if (ok) safe->proc.lcdMessage (u ("Global parameters received."));
             else safe->ed.inform (true, "Global", msg, true);
         });
     };
     sendGlobals.onClick = [this]
     {
-        if (! proc.hasGlobals()) { ed.inform (true, "Global", u ("Najpierw odbierz parametry globalne (Request)."), true); return; }
-        ed.confirm (true, "Global", u ("Wysłać parametry globalne do syntezatora?"), [this]
+        if (! proc.hasGlobals()) { ed.inform (true, "Global", u ("Receive the global parameters first (Request)."), true); return; }
+        ed.confirm (true, "Global", u ("Send the global parameters to the synth?"), [this]
         {
-            ed.inform (proc.getSettings().sendOkConfirm, "Global", proc.sendGlobals() ? u ("Wysłano.") : u ("Brak połączenia."), false);
+            ed.inform (proc.getSettings().sendOkConfirm, "Global", proc.sendGlobals() ? u ("Sent.") : u ("No connection."), false);
         });
     };
     addAndMakeVisible (requestGlobals);
@@ -91,7 +91,7 @@ void ProgramTab::paint (juce::Graphics& g)
 {
     g.setColour (col::dim);
     g.setFont (juce::FontOptions (11.5f));
-    g.drawFittedText (u ("Zielone parametry nie mają CC/NRPN - zmieniają się w syntezatorze po wysłaniu programu (Send / auto-wysyłanie w Settings)."),
+    g.drawFittedText (u ("Green parameters have no CC/NRPN - the synth picks them up when the program is sent (Send button or auto-send in Settings)."),
                       juce::Rectangle<int> (16, 612, 600, 30), juce::Justification::centredLeft, 2);
 }
 
@@ -147,7 +147,7 @@ void ProgramTab::refreshInfo()
     if (! description.hasKeyboardFocus (true)) description.setText (in.description, juce::dontSendNotification);
     const int ci = categories().indexOf (in.category);
     category.setSelectedId (ci <= 0 ? 1 : ci + 1, juce::dontSendNotification);
-    dateLabel.setText (in.date.isEmpty() ? u ("Data zapisu: -") : u ("Data zapisu: ") + in.date.substring (0, 16).replaceCharacter ('T', ' '),
+    dateLabel.setText (in.date.isEmpty() ? u ("Saved: -") : u ("Saved: ") + in.date.substring (0, 16).replaceCharacter ('T', ' '),
                        juce::dontSendNotification);
 }
 

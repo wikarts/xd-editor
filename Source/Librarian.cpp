@@ -8,20 +8,20 @@ static juce::String u (const char* s) { return juce::String::fromUTF8 (s); }
 
 juce::StringArray programActionNames()
 {
-    return { u ("Wczytaj źródło do panelu (i bufora XD)"), u ("Wczytaj program Init do panelu"),
-             u ("Wczytaj plik programu do celu"), u ("Wstaw Init do celu"),
-             u ("Zapisz źródło do pliku"), u ("Zapisz bufor XD do celu"),
-             u ("Przenieś źródło → cel"), u ("Kopiuj źródło → cel"),
-             u ("Kopiuj wiele (jak jest)"), u ("Kopiuj wiele (ciągiem)"),
-             u ("Zamień źródło ↔ cel"), u ("Pełne porównanie"), u ("Tylko różnice") };
+    return { u ("Load source to panel (and XD buffer)"), u ("Load Init program to panel"),
+             u ("Load program file into destination"), u ("Init destination"),
+             u ("Save source to file"), u ("Save XD buffer to destination"),
+             u ("Move source → destination"), u ("Copy source → destination"),
+             u ("Copy multiple (as-is)"), u ("Copy multiple (collated)"),
+             u ("Swap source ↔ destination"), u ("Full comparison"), u ("Differences only") };
 }
 
 juce::StringArray bankActionNames()
 {
-    return { u ("Wczytaj z dysku (.syx / .mnlgxdlib)"), u ("Zapisz na dysk (.syx)"),
-             u ("Zapisz jako bibliotekę Korg (.mnlgxdlib)"), u ("Pusty bank (500 x Init)"),
-             u ("Odbierz z Minilogue XD"), u ("Wyślij bank do Minilogue XD"),
-             u ("Wyczyść / zamknij bank"), u ("Eksportuj listę do pliku tekstowego") };
+    return { u ("Load from disk (.syx / .mnlgxdlib)"), u ("Save to disk (.syx)"),
+             u ("Save as Korg library (.mnlgxdlib)"), u ("Empty bank (500 x Init)"),
+             u ("Receive from Minilogue XD"), u ("Send bank to Minilogue XD"),
+             u ("Clear / close bank"), u ("Export program list to text file") };
 }
 
 juce::Array<int> multiCopyTargets (const juce::Array<int>& src, int dstSlot, bool collated)
@@ -55,15 +55,15 @@ juce::String copy (XDProcessor& p, int sb, const juce::Array<int>& srcSlots, int
         dst.highlighted.insert (targets[i]);
     }
     p.bankModified ((BankId) db, targets);
-    juce::String msg = u ("Skopiowano ") + juce::String (targets.size()) + u (" program(ów).");
+    juce::String msg = u ("Copied ") + juce::String (targets.size()) + u (" program(s).");
     if (targets.size() < sorted.size())
-        msg << u ("\nPominięto ") << (sorted.size() - targets.size()) << u (" - brak miejsca za slotem 500.");
+        msg << u ("\nSkipped ") << (sorted.size() - targets.size()) << u (" - no room after slot 500.");
     return msg;
 }
 
 juce::String move (XDProcessor& p, int sb, int ss, int db, int ds)
 {
-    if (sb == db && ss == ds) return u ("Źródło i cel są takie same.");
+    if (sb == db && ss == ds) return u ("Source and destination are the same.");
     auto prog = p.bank (sb).progs[(size_t) ss];
     auto info = p.bank (sb).info[(size_t) ss];
     p.bank (db).progs[(size_t) ds] = prog;
@@ -72,7 +72,7 @@ juce::String move (XDProcessor& p, int sb, int ss, int db, int ds)
     p.bank (sb).info[(size_t) ss] = {};
     if (sb == db) p.bankModified ((BankId) db, { ss, ds });
     else { p.bankModified ((BankId) sb, { ss }); p.bankModified ((BankId) db, { ds }); }
-    return u ("Przeniesiono: ") + prog.getName();
+    return u ("Moved: ") + prog.getName();
 }
 
 juce::String swap (XDProcessor& p, int sb, int ss, int db, int ds)
@@ -81,7 +81,7 @@ juce::String swap (XDProcessor& p, int sb, int ss, int db, int ds)
     std::swap (p.bank (sb).info[(size_t) ss], p.bank (db).info[(size_t) ds]);
     if (sb == db) p.bankModified ((BankId) db, { ss, ds });
     else { p.bankModified ((BankId) sb, { ss }); p.bankModified ((BankId) db, { ds }); }
-    return u ("Zamieniono programy.");
+    return u ("Programs swapped.");
 }
 
 juce::String initSlot (XDProcessor& p, int b, int s)
@@ -89,7 +89,7 @@ juce::String initSlot (XDProcessor& p, int b, int s)
     p.bank (b).progs[(size_t) s] = Program();
     p.bank (b).info[(size_t) s] = {};
     p.bankModified ((BankId) b, { s });
-    return u ("Wstawiono program Init.");
+    return u ("Init program inserted.");
 }
 
 juce::String putProgram (XDProcessor& p, int b, int s, const Program& prog, const AddInfo& info)
@@ -97,6 +97,6 @@ juce::String putProgram (XDProcessor& p, int b, int s, const Program& prog, cons
     p.bank (b).progs[(size_t) s] = prog;
     p.bank (b).info[(size_t) s] = info;
     p.bankModified ((BankId) b, { s });
-    return u ("Zapisano: ") + prog.getName();
+    return u ("Saved: ") + prog.getName();
 }
 } // namespace lib

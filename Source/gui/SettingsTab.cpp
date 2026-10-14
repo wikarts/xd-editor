@@ -7,21 +7,21 @@ namespace
 {
 struct ToggleDef { const char* text; bool Settings::* member; const char* tip; };
 const ToggleDef toggleDefs[] = {
-    { "Bank autosave", &Settings::bankAutoSave, "Zmiany w bankach od razu zapisywane do pliku .syx banku." },
-    { "Actions confirm", &Settings::actionsConfirm, "Potwierdzenia operacji librariana." },
-    { "Save OK confirm", &Settings::saveOkConfirm, "Komunikat po udanym zapisie." },
-    { "Load confirm", &Settings::loadConfirm, "Pytanie przed wczytaniem programu z banku." },
-    { "Load OK confirm", &Settings::loadOkConfirm, "Komunikat po wczytaniu." },
-    { "Receive confirm", &Settings::receiveConfirm, "Pytanie przed odbiorem z syntezatora." },
-    { "Receive OK confirm", &Settings::receiveOkConfirm, "Komunikat po odbiorze." },
-    { "Send confirm (small Send)", &Settings::sendConfirm, "Pytanie przed wysłaniem małymi przyciskami Send." },
-    { "Send OK confirm (small Send)", &Settings::sendOkConfirm, "Komunikat po wysłaniu małymi przyciskami Send." },
-    { "Welcome message", &Settings::welcome, "Komunikat powitalny na LCD." },
-    { "Auto-send dump for green params", &Settings::autoSendDump, "Po zmianie parametru bez CC/NRPN program jest automatycznie wysyłany (z opóźnieniem 250 ms)." },
-    { "Send patch on project load", &Settings::sendOnRecall, "Po otwarciu projektu DAW zapisany w nim patch jest wysyłany do syntezatora." },
-    { "Send patch when editor opens", &Settings::sendOnEditorOpen, "Otwarcie okna wtyczki na danej ścieżce wysyła jej patch do syntezatora." },
-    { "Thru: host notes -> synth", &Settings::hostThru, "Nuty z DAW przechodzą do syntezatora (przez port urządzenia albo wyjście MIDI wtyczki)." },
-    { "Host MIDI in = synth feedback", &Settings::hostInputAsSynth, "CC/NRPN/SysEx docierające z DAW traktuj jako odpowiedź syntezatora." },
+    { "Bank autosave", &Settings::bankAutoSave, "Bank changes are written to the bank's .syx file immediately." },
+    { "Actions confirm", &Settings::actionsConfirm, "Ask before librarian operations." },
+    { "Save OK confirm", &Settings::saveOkConfirm, "Show a message after a successful save." },
+    { "Load confirm", &Settings::loadConfirm, "Ask before loading a program from a bank." },
+    { "Load OK confirm", &Settings::loadOkConfirm, "Show a message after loading." },
+    { "Receive confirm", &Settings::receiveConfirm, "Ask before receiving from the synth." },
+    { "Receive OK confirm", &Settings::receiveOkConfirm, "Show a message after receiving." },
+    { "Send confirm (small Send)", &Settings::sendConfirm, "Ask before sending with the small Send buttons." },
+    { "Send OK confirm (small Send)", &Settings::sendOkConfirm, "Show a message after sending with the small Send buttons." },
+    { "Welcome message", &Settings::welcome, "Welcome message on the LCD." },
+    { "Auto-send dump for green params", &Settings::autoSendDump, "After changing a parameter without CC/NRPN the program is sent automatically (250 ms later)." },
+    { "Send patch on project load", &Settings::sendOnRecall, "When a DAW project is opened, the patch stored in it is sent to the synth." },
+    { "Send patch when editor opens", &Settings::sendOnEditorOpen, "Opening the plugin window on a track sends that track's patch to the synth." },
+    { "Thru: host notes -> synth", &Settings::hostThru, "Notes from the DAW are passed to the synth (via the device port or the plugin's MIDI output)." },
+    { "Host MIDI in = synth feedback", &Settings::hostInputAsSynth, "Treat CC/NRPN/SysEx arriving from the DAW as coming from the synth." },
 };
 }
 
@@ -38,7 +38,7 @@ SettingsTab::SettingsTab (XDEditor& e) : ed (e), proc (e.proc)
     }
     saveMode.addItemList ({ "Save mode: Sysex (.syx)", "Save mode: Korg Librarian (.mnlgxdprog)", "Save mode: Both" }, 1);
     saveMode.onChange = [this] { proc.getSettings().saveMode = saveMode.getSelectedId() - 1; proc.getSettings().changed(); };
-    nonCcMode.addItemList ({ u ("Zielone: widoczne i aktywne"), u ("Zielone: wyłączone"), u ("Zielone: ukryte") }, 1);
+    nonCcMode.addItemList ({ u ("Green params: visible and enabled"), u ("Green params: disabled"), u ("Green params: hidden") }, 1);
     nonCcMode.onChange = [this] { proc.getSettings().nonCcMode = nonCcMode.getSelectedId() - 1; proc.getSettings().changed(); };
     transfer.setSliderStyle (juce::Slider::LinearBar);
     transfer.setRange (20, 1000, 10);
@@ -62,7 +62,7 @@ SettingsTab::SettingsTab (XDEditor& e) : ed (e), proc (e.proc)
     };
     for (int c = 1; c <= 16; ++c) channel.addItem ("Channel " + juce::String (c), c);
     channel.onChange = [this] { proc.getSettings().channel = channel.getSelectedId() - 1; proc.getSettings().changed(); };
-    route.addItemList ({ u ("Wyjście: port MIDI urządzenia"), u ("Wyjście: przez DAW (wyjście MIDI wtyczki)"), u ("Wyjście: oba") }, 1);
+    route.addItemList ({ u ("Output: MIDI device port"), u ("Output: via the DAW (plugin MIDI output)"), u ("Output: both") }, 1);
     route.onChange = [this] { proc.getSettings().outputRoute = route.getSelectedId() - 1; proc.getSettings().changed(); };
     refreshDevices.onClick = [this] { fillDevices(); };
     inquiry.onClick = [this] { proc.deviceInquiry(); };
@@ -82,13 +82,13 @@ SettingsTab::SettingsTab (XDEditor& e) : ed (e), proc (e.proc)
     about.setMultiLine (true);
     about.setReadOnly (true);
     about.setFont (juce::FontOptions (12.5f));
-    about.setText (u ("XD Editor 1.0 - edytor i librarian Korg minilogue xd (VST3 / AU / standalone).\n\n"
-                      "Funkcje: wszystkie parametry programu (CC / NRPN w czasie rzeczywistym, pozostałe przez zrzut programu), "
-                      "parametry globalne, 3 banki po 500 programów (Disk 1, Disk 2, Minilogue XD), kopiowanie / przenoszenie / zamiana / "
-                      "kopiowanie wielu, porównania, morphing z blokadą sekcji (parametr automatyzacji 'Morph' i CC 100), "
-                      "pliki .syx, .mnlgxdprog, .mnlgxdlib, .prog_bin, nazwy modułów USER, podgląd sekwencera.\n\n"
-                      "W DAW: stan wtyczki (bieżący patch, banki, ustawienia panelu) zapisuje się w projekcie, a po jego otwarciu "
-                      "patch jest automatycznie wysyłany do syntezatora. Wszystkie parametry są dostępne do automatyzacji."));
+    about.setText (u ("XD Editor 1.0 - editor & librarian for the Korg minilogue xd (VST3 / AU / standalone).\n\n"
+                      "Features: every program parameter (real time via CC / NRPN, the rest via program dump), "
+                      "global parameters, 3 banks of 500 programs (Disk 1, Disk 2, Minilogue XD), copy / move / swap / "
+                      "multi-copy, comparisons, morphing with section locks ('Morph' automation parameter and CC 100), "
+                      ".syx, .mnlgxdprog, .mnlgxdlib and .prog_bin files, USER module names, sequencer view.\n\n"
+                      "In a DAW the plugin state (current patch, banks, panel settings) is saved with the project; when the project is opened "
+                      "the patch is sent to the synth automatically. Every parameter can be automated."));
     addAndMakeVisible (about);
 
     // program info
@@ -100,12 +100,12 @@ SettingsTab::SettingsTab (XDEditor& e) : ed (e), proc (e.proc)
         display.onClick();
         auto text = report.getText();
         auto name = proc.getCurrent().getName().trim();
-        ed.chooseFile (true, u ("Eksport informacji o programie"), "*.txt",
+        ed.chooseFile (true, u ("Export program information"), "*.txt",
                        juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ((name.isEmpty() ? juce::String ("program") : name) + "_info.txt"),
                        [this, text] (juce::File f)
         {
             const bool ok = f.withFileExtension (".txt").replaceWithText (text);
-            ed.inform (true, "Export", ok ? u ("Zapisano.") : u ("Nie można zapisać pliku."), ! ok);
+            ed.inform (true, "Export", ok ? u ("Saved.") : u ("Cannot write the file."), ! ok);
         });
     };
     report.setMultiLine (true);
@@ -129,8 +129,8 @@ void SettingsTab::fillDevices()
     midiIn.clear (juce::dontSendNotification);
     midiOut.clear (juce::dontSendNotification);
     inIds.clear(); outIds.clear();
-    midiIn.addItem (u ("(brak)"), 1);
-    midiOut.addItem (u ("(brak)"), 1);
+    midiIn.addItem (u ("(none)"), 1);
+    midiOut.addItem (u ("(none)"), 1);
     for (auto& d : juce::MidiInput::getAvailableDevices()) { inIds.add (d.identifier); midiIn.addItem (d.name, inIds.size() + 1); }
     for (auto& d : juce::MidiOutput::getAvailableDevices()) { outIds.add (d.identifier); midiOut.addItem (d.name, outIds.size() + 1); }
     midiIn.setSelectedId (inIds.indexOf (s.midiInId) + 2, juce::dontSendNotification);
@@ -150,10 +150,10 @@ void SettingsTab::refresh()
     route.setSelectedId (s.outputRoute + 1, juce::dontSendNotification);
 
     juce::String st;
-    st << (proc.isConnected() ? u ("Połączono: minilogue xd, OS ") + proc.getOsVersion() : u ("Brak odpowiedzi na Device Inquiry.")) << "\n";
-    st << "In: " << (proc.getMidi().hasInput() ? proc.getMidi().inputName() : u ("(brak)"))
-       << "   Out: " << (proc.getMidi().hasOutput() ? proc.getMidi().outputName() : u ("(brak)")) << "\n";
-    st << u ("USB: wejście 'minilogue xd KBD/KNOB', wyjście 'minilogue xd SOUND'.");
+    st << (proc.isConnected() ? u ("Connected: minilogue xd, OS ") + proc.getOsVersion() : u ("No reply to Device Inquiry.")) << "\n";
+    st << "In: " << (proc.getMidi().hasInput() ? proc.getMidi().inputName() : u ("(none)"))
+       << "   Out: " << (proc.getMidi().hasOutput() ? proc.getMidi().outputName() : u ("(none)")) << "\n";
+    st << u ("USB: input 'minilogue xd KBD/KNOB', output 'minilogue xd SOUND' (Windows may name them 'minilogue xd' / 'MIDIIN2').");
     statusLabel.setText (st, juce::dontSendNotification);
 }
 
@@ -175,6 +175,10 @@ void SettingsTab::paint (juce::Graphics& g)
     drawBox ({ 8, 8, 400, 636 }, "Panel settings");
     drawBox ({ 416, 8, 420, 636 }, "MIDI & synth");
     drawBox ({ 844, 8, 428, 636 }, "Program information");
+    g.setColour (col::text);
+    g.setFont (juce::FontOptions (13.0f));
+    g.drawText ("MIDI In", 426, 30, 58, 24, juce::Justification::centredLeft);
+    g.drawText ("MIDI Out", 426, 60, 58, 24, juce::Justification::centredLeft);
 }
 
 void SettingsTab::resized()
@@ -189,9 +193,9 @@ void SettingsTab::resized()
     zoomLabel.setBounds (56, y, 120, 24);
     zoomIn.setBounds (180, y, 32, 24);
 
-    midiIn.setBounds (426, 30, 300, 24);
+    midiIn.setBounds (486, 30, 240, 24);
     refreshDevices.setBounds (732, 30, 92, 24);
-    midiOut.setBounds (426, 60, 300, 24);
+    midiOut.setBounds (486, 60, 240, 24);
     channel.setBounds (426, 90, 150, 24);
     route.setBounds (426, 120, 398, 24);
     inquiry.setBounds (426, 152, 150, 26);

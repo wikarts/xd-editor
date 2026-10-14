@@ -4,11 +4,11 @@ namespace xd
 {
 juce::StringArray reportKindNames()
 {
-    return { juce::String::fromUTF8 ("Bieżące wartości"), juce::String::fromUTF8 ("Zapisane wartości"),
-             juce::String::fromUTF8 ("Różnice względem Init"), juce::String::fromUTF8 ("Pełne porównanie (bieżące / zapisane)"),
-             juce::String::fromUTF8 ("Tylko różnice (bieżące / zapisane)"),
-             juce::String::fromUTF8 ("Pełne porównanie (biblioteka: źródło / cel)"),
-             juce::String::fromUTF8 ("Różnice (biblioteka: źródło / cel)") };
+    return { juce::String::fromUTF8 ("Current values"), juce::String::fromUTF8 ("Saved values"),
+             juce::String::fromUTF8 ("Differences from Init"), juce::String::fromUTF8 ("Full comparison (current / saved)"),
+             juce::String::fromUTF8 ("Differences only (current / saved)"),
+             juce::String::fromUTF8 ("Full comparison (library: source / destination)"),
+             juce::String::fromUTF8 ("Differences (library: source / destination)") };
 }
 
 juce::String buildReport (const Program& a, const AddInfo& ia, const juce::String& titleA,
@@ -54,7 +54,7 @@ juce::String buildReport (const Program& a, const AddInfo& ia, const juce::Strin
     }
     if (b != nullptr && a.getName() != b->getName())
         s << juce::String ("  Name").paddedRight (' ', w1) << a.getName().paddedRight (' ', w2) << b->getName() << "   *\n";
-    if (onlyDiff && count == 0) s << juce::String::fromUTF8 ("(brak różnic w parametrach)\n");
+    if (onlyDiff && count == 0) s << juce::String::fromUTF8 ("(no parameter differences)\n");
     return s;
 }
 

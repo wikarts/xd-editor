@@ -27,7 +27,7 @@ public:
         {
             g.setColour (col::dim);
             g.setFont (juce::FontOptions (13.0f));
-            g.drawFittedText (u ("Bank pusty.\nKliknij nagłówek, wybierz akcję\nbanku i naciśnij Proceed."), getLocalBounds().reduced (12), juce::Justification::centred, 4);
+            g.drawFittedText (u ("Empty bank.\nClick the header, choose a bank\naction and press Proceed."), getLocalBounds().reduced (12), juce::Justification::centred, 4);
         }
     }
     void refresh() { const bool l = proc.bank (bank).loaded; inner.setVisible (l); vp.setVisible (l); inner.repaint(); repaint(); }
@@ -103,7 +103,7 @@ private:
             auto& p = owner.proc;
             auto& b = p.bank (owner.bank);
             p.loadProgram (b.progs[(size_t) row], b.info[(size_t) row], p.canTalkToSynth());
-            p.lcdMessage (u ("Wczytano ") + slotName (owner.bank, row) + " " + b.progs[(size_t) row].getName());
+            p.lcdMessage (u ("Loaded ") + slotName (owner.bank, row) + " " + b.progs[(size_t) row].getName());
         }
     } inner;
 };
@@ -115,7 +115,7 @@ LibrarianTab::LibrarianTab (XDEditor& e) : ed (e), proc (e.proc)
     {
         headers[i].setClickingTogglesState (false);
         headers[i].onClick = [this, i] { bankHeaderClicked (i); };
-        headers[i].setTooltip (u ("Kliknij, aby wybrać bank dla akcji banku."));
+        headers[i].setTooltip (u ("Click to select this bank for bank actions."));
         addAndMakeVisible (headers[i]);
         addAndMakeVisible (lists.add (new BankList (*this, proc, i)));
     }
@@ -140,10 +140,10 @@ LibrarianTab::LibrarianTab (XDEditor& e) : ed (e), proc (e.proc)
     {
         morphKnob.repaint();
         if (updatingMorph) return;
-        if (! proc.hasMorphTarget()) { ed.inform (true, "Morph", u ("Wybierz program docelowy prawym kliknięciem na liście."), true); updatingMorph = true; morphKnob.slider.setValue (0); updatingMorph = false; return; }
+        if (! proc.hasMorphTarget()) { ed.inform (true, "Morph", u ("Right-click a program in a list to choose the destination."), true); updatingMorph = true; morphKnob.slider.setValue (0); updatingMorph = false; return; }
         proc.setMorph (morphKnob.slider.getValue() / 100.0);
     };
-    morphKnob.slider.setTooltip (u ("Morphing z bieżącego programu do programu docelowego. Automatyzacja: parametr 'Morph' lub CC 100."));
+    morphKnob.slider.setTooltip (u ("Morph from the current program to the destination program. Automate with the 'Morph' parameter or CC 100."));
     addAndMakeVisible (morphKnob);
     for (int s = 0; s < (int) Section::Sequencer; ++s)
     {
@@ -174,7 +174,7 @@ void LibrarianTab::paint (juce::Graphics& g)
         auto& b = proc.bank (i);
         g.setColour (col::dim);
         g.setFont (juce::FontOptions (11.0f));
-        g.drawFittedText (b.file == juce::File() ? (b.loaded ? u ("(nie zapisany)") : juce::String ("-")) : b.file.getFileName(),
+        g.drawFittedText (b.file == juce::File() ? (b.loaded ? u ("(not saved)") : juce::String ("-")) : b.file.getFileName(),
                           juce::Rectangle<int> (8 + i * 256, 38, 248, 18), juce::Justification::centredLeft, 1);
     }
     auto drawBox = [&] (juce::Rectangle<int> r, const char* t)
@@ -189,7 +189,7 @@ void LibrarianTab::paint (juce::Graphics& g)
     drawBox ({ 780, 286, 492, 358 }, "Morphing");
     g.setColour (col::dim);
     g.setFont (juce::FontOptions (11.5f));
-    g.drawFittedText (u ("Lewy klik = źródło (Shift/Ctrl = wiele), prawy klik = cel, dwuklik = wczytaj do panelu."),
+    g.drawFittedText (u ("Left click = source (Shift/Ctrl = multiple), right click = destination, double click = load to panel."),
                       juce::Rectangle<int> (792, 250, 470, 24), juce::Justification::centredLeft, 2);
 }
 
@@ -241,14 +241,14 @@ void LibrarianTab::refreshAll()
     const int src = proc.libSrcFirst();
     if (src >= 0 && juce::isPositiveAndBelow (proc.libSrcBank, 3))
     {
-        s << u ("Źródło: ") << slotName (proc.libSrcBank, src) << "  " << proc.bank (proc.libSrcBank).progs[(size_t) src].getName();
-        if (proc.libSrcSlots.size() > 1) s << "  (+" << (proc.libSrcSlots.size() - 1) << u (" zaznaczonych)");
+        s << u ("Source: ") << slotName (proc.libSrcBank, src) << "  " << proc.bank (proc.libSrcBank).progs[(size_t) src].getName();
+        if (proc.libSrcSlots.size() > 1) s << "  (+" << (proc.libSrcSlots.size() - 1) << u (" more selected)");
     }
-    else s << u ("Źródło: -");
+    else s << u ("Source: -");
     s << "\n";
     if (proc.libDstSlot >= 0 && juce::isPositiveAndBelow (proc.libDstBank, 3))
-        s << u ("Cel: ") << slotName (proc.libDstBank, proc.libDstSlot) << "  " << proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName();
-    else s << u ("Cel: -");
+        s << u ("Destination: ") << slotName (proc.libDstBank, proc.libDstSlot) << "  " << proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName();
+    else s << u ("Destination: -");
     selectionInfo.setText (s, juce::dontSendNotification);
 
     updatingMorph = true;
@@ -256,10 +256,10 @@ void LibrarianTab::refreshAll()
     morphKnob.repaint();
     updatingMorph = false;
     morphInfo.setText (proc.hasMorphTarget()
-                           ? u ("Z: bieżący program (") + proc.getCurrent().getName() + u (")\nDo: ") + slotName (proc.libDstBank, proc.libDstSlot) + "  "
+                           ? u ("From: current program (") + proc.getCurrent().getName() + u (")\nTo: ") + slotName (proc.libDstBank, proc.libDstSlot) + "  "
                                  + proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName()
-                                 + u ("\nZablokowane sekcje nie są zmieniane.")
-                           : u ("Wybierz program docelowy (prawy klik na liście).\nWłącz LCD OFF i kręć pokrętłem Morph."),
+                                 + u ("\nLocked sections are not changed.")
+                           : u ("Choose a destination (right click in a list).\nSwitch LCD OFF and turn the Morph knob."),
                        juce::dontSendNotification);
 }
 
@@ -316,38 +316,38 @@ void LibrarianTab::runProgramAction()
     auto& s = proc.getSettings();
 
     if (needsSource (a) && (ss < 0 || ! juce::isPositiveAndBelow (sb, 3) || ! proc.bank (sb).loaded))
-    { ed.inform (true, "Librarian", u ("Wybierz program źródłowy (lewy klik)."), true); return; }
+    { ed.inform (true, "Librarian", u ("Select a source program (left click)."), true); return; }
     if (needsDest (a) && (ds < 0 || ! juce::isPositiveAndBelow (db, 3) || ! proc.bank (db).loaded))
-    { ed.inform (true, "Librarian", u ("Wybierz program docelowy (prawy klik)."), true); return; }
+    { ed.inform (true, "Librarian", u ("Select a destination program (right click)."), true); return; }
 
     const bool toSynth = db == (int) BankId::Synth;
-    const juce::String synthNote = toSynth ? u ("\n\nCel jest w banku Minilogue XD - program w syntezatorze zostanie nadpisany.") : juce::String();
+    const juce::String synthNote = toSynth ? u ("\n\nThe destination is in the Minilogue XD bank - the program on the synth will be overwritten.") : juce::String();
 
     switch (a)
     {
         case A::LoadToPanel:
-            ed.confirm (s.loadConfirm, "Load", u ("Wczytać ") + slotName (sb, ss) + u (" do panelu i bufora syntezatora?"), [this, sb, ss]
+            ed.confirm (s.loadConfirm, "Load", u ("Load ") + slotName (sb, ss) + u (" into the panel and the synth's edit buffer?"), [this, sb, ss]
             {
                 const bool send = proc.canTalkToSynth();
                 proc.loadProgram (proc.bank (sb).progs[(size_t) ss], proc.bank (sb).info[(size_t) ss], send);
-                ed.inform (proc.getSettings().loadOkConfirm, "Load", send ? u ("Wczytano i wysłano do bufora.") : u ("Wczytano do panelu (brak połączenia z syntezatorem)."), ! send);
+                ed.inform (proc.getSettings().loadOkConfirm, "Load", send ? u ("Loaded and sent to the edit buffer.") : u ("Loaded into the panel (no connection to the synth)."), ! send);
             });
             break;
         case A::InitToPanel: ed.doInit(); break;
         case A::LoadFileToDest:
-            ed.chooseFile (false, u ("Program do wstawienia w ") + slotName (db, ds), "*.syx;*.mnlgxdprog;*.prog_bin",
+            ed.chooseFile (false, u ("Program to put into ") + slotName (db, ds), "*.syx;*.mnlgxdprog;*.prog_bin",
                            juce::File (s.lastProgramDir), [this, db, ds, synthNote] (juce::File f)
             {
                 auto p = std::make_shared<Program>();
                 auto info = std::make_shared<AddInfo>();
                 auto r = files::loadProgram (f, *p, *info);
                 if (! r.ok) { ed.inform (true, "Load", r.message, true); return; }
-                ed.confirm (proc.getSettings().actionsConfirm, "Load", u ("Wstawić \"") + p->getName() + u ("\" do ") + slotName (db, ds) + "?" + synthNote,
+                ed.confirm (proc.getSettings().actionsConfirm, "Load", u ("Put \"") + p->getName() + u ("\" into ") + slotName (db, ds) + "?" + synthNote,
                             [this, db, ds, p, info] { proc.lcdMessage (lib::putProgram (proc, db, ds, *p, *info)); });
             });
             break;
         case A::InitDest:
-            ed.confirm (s.actionsConfirm, "Init", u ("Wstawić program Init do ") + slotName (db, ds) + "?" + synthNote,
+            ed.confirm (s.actionsConfirm, "Init", u ("Put the Init program into ") + slotName (db, ds) + "?" + synthNote,
                         [this, db, ds] { proc.lcdMessage (lib::initSlot (proc, db, ds)); });
             break;
         case A::SaveSrcToFile:
@@ -355,31 +355,31 @@ void LibrarianTab::runProgramAction()
             auto& b = proc.bank (sb);
             auto name = b.progs[(size_t) ss].getName().trim();
             auto initial = juce::File (s.lastProgramDir).getChildFile ((name.isEmpty() ? juce::String ("program") : name) + (s.saveMode == 1 ? ".mnlgxdprog" : ".syx"));
-            ed.chooseFile (true, u ("Zapisz ") + slotName (sb, ss), "*.syx;*.mnlgxdprog", initial, [this, sb, ss] (juce::File f)
+            ed.chooseFile (true, u ("Save ") + slotName (sb, ss), "*.syx;*.mnlgxdprog", initial, [this, sb, ss] (juce::File f)
             {
                 auto& bk = proc.bank (sb);
                 auto r = f.hasFileExtension (".mnlgxdprog") ? files::saveProgramXdProg (f, bk.progs[(size_t) ss], bk.info[(size_t) ss])
                                                             : files::saveProgramSyx (f.withFileExtension (".syx"), bk.progs[(size_t) ss], bk.info[(size_t) ss], proc.getSettings().channel);
-                ed.inform (proc.getSettings().saveOkConfirm || ! r.ok, "Save", r.ok ? u ("Zapisano: ") + f.getFileName() : r.message, ! r.ok);
+                ed.inform (proc.getSettings().saveOkConfirm || ! r.ok, "Save", r.ok ? u ("Saved: ") + f.getFileName() : r.message, ! r.ok);
             });
             break;
         }
         case A::BufferToDest:
-            ed.confirm (s.actionsConfirm, "Buffer", u ("Odebrać bufor syntezatora i zapisać w ") + slotName (db, ds) + "?" + synthNote, [this, db, ds]
+            ed.confirm (s.actionsConfirm, "Buffer", u ("Receive the synth's edit buffer and store it in ") + slotName (db, ds) + "?" + synthNote, [this, db, ds]
             {
                 juce::Component::SafePointer<LibrarianTab> safe (this);
                 proc.requestBufferToBank ((BankId) db, ds, [safe] (bool ok, juce::String msg)
                 {
-                    if (safe != nullptr) safe->ed.inform (! ok || safe->proc.getSettings().saveOkConfirm, "Buffer", ok ? u ("Zapisano: ") + msg : msg, ! ok);
+                    if (safe != nullptr) safe->ed.inform (! ok || safe->proc.getSettings().saveOkConfirm, "Buffer", ok ? u ("Saved: ") + msg : msg, ! ok);
                 });
             });
             break;
         case A::Move:
-            ed.confirm (s.actionsConfirm, "Move", u ("Przenieść ") + slotName (sb, ss) + " -> " + slotName (db, ds) + u ("?\nŹródło zostanie zastąpione programem Init.") + synthNote,
+            ed.confirm (s.actionsConfirm, "Move", u ("Move ") + slotName (sb, ss) + " -> " + slotName (db, ds) + u ("?\nThe source will be replaced by the Init program.") + synthNote,
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::move (proc, sb, ss, db, ds)); });
             break;
         case A::Copy:
-            ed.confirm (s.actionsConfirm, "Copy", u ("Kopiować ") + slotName (sb, ss) + " -> " + slotName (db, ds) + "?" + synthNote,
+            ed.confirm (s.actionsConfirm, "Copy", u ("Copy ") + slotName (sb, ss) + " -> " + slotName (db, ds) + "?" + synthNote,
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::copy (proc, sb, { ss }, db, ds, true)); });
             break;
         case A::CopyMultiAsIs:
@@ -388,14 +388,14 @@ void LibrarianTab::runProgramAction()
             const bool collated = a == A::CopyMultiCollated;
             auto targets = lib::multiCopyTargets (proc.libSrcSlots, ds, collated);
             auto slots = proc.libSrcSlots;
-            ed.confirm (s.actionsConfirm, "Copy", u ("Kopiować ") + juce::String (slots.size()) + u (" program(ów) do ") + bankTitle ((BankId) db)
-                            + u (" od slotu ") + juce::String (ds + 1).paddedLeft ('0', 3) + u ("?\nNadpisanych zostanie ") + juce::String (targets.size()) + u (" slotów.") + synthNote,
+            ed.confirm (s.actionsConfirm, "Copy", u ("Copy ") + juce::String (slots.size()) + u (" program(s) to ") + bankTitle ((BankId) db)
+                            + u (" starting at slot ") + juce::String (ds + 1).paddedLeft ('0', 3) + u ("?\n") + juce::String (targets.size()) + u (" slot(s) will be overwritten.") + synthNote,
                         [this, sb, slots, db, ds, collated] { ed.inform (proc.getSettings().saveOkConfirm, "Copy", lib::copy (proc, sb, slots, db, ds, collated)); });
             break;
         }
         case A::Swap:
-            ed.confirm (s.actionsConfirm, "Swap", u ("Zamienić ") + slotName (sb, ss) + " <-> " + slotName (db, ds) + "?"
-                            + ((sb == (int) BankId::Synth || toSynth) ? u ("\n\nZmiana obejmie pamięć syntezatora.") : juce::String()),
+            ed.confirm (s.actionsConfirm, "Swap", u ("Swap ") + slotName (sb, ss) + " <-> " + slotName (db, ds) + "?"
+                            + ((sb == (int) BankId::Synth || toSynth) ? u ("\n\nThis changes the synth's memory.") : juce::String()),
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::swap (proc, sb, ss, db, ds)); });
             break;
         case A::CompareFull:
@@ -423,9 +423,9 @@ void LibrarianTab::runBankAction()
     switch (a)
     {
         case A::LoadFromDisk:
-            ed.confirm (bank.dirty && s.actionsConfirm, title, u ("Bank ma niezapisane zmiany. Kontynuować?"), [this, b, title, initialDir]
+            ed.confirm (bank.dirty && s.actionsConfirm, title, u ("The bank has unsaved changes. Continue?"), [this, b, title, initialDir]
             {
-                ed.chooseFile (false, u ("Wczytaj bank do ") + title, "*.syx;*.mnlgxdlib", initialDir, [this, b, title] (juce::File f)
+                ed.chooseFile (false, u ("Load bank into ") + title, "*.syx;*.mnlgxdlib", initialDir, [this, b, title] (juce::File f)
                 {
                     auto doLoad = [this, b, f, title]
                     {
@@ -439,7 +439,7 @@ void LibrarianTab::runBankAction()
                         else ed.inform (proc.getSettings().loadOkConfirm, title, r.message);
                     };
                     if (b == (int) BankId::Synth)
-                        ed.confirm (true, title, u ("UWAGA: wczytanie do banku Minilogue XD wyśle wszystkie 500 programów do syntezatora i nadpisze jego pamięć. Kontynuować?"), doLoad);
+                        ed.confirm (true, title, u ("WARNING: loading into the Minilogue XD bank sends all 500 programs to the synth and overwrites its memory. Continue?"), doLoad);
                     else doLoad();
                 });
             });
@@ -447,51 +447,51 @@ void LibrarianTab::runBankAction()
         case A::SaveToDisk:
         case A::SaveAsKorgLib:
         {
-            if (! bank.loaded) { ed.inform (true, title, u ("Bank jest pusty."), true); return; }
+            if (! bank.loaded) { ed.inform (true, title, u ("The bank is empty."), true); return; }
             const bool korg = a == A::SaveAsKorgLib;
             auto initial = bank.file != juce::File() ? bank.file.withFileExtension (korg ? ".mnlgxdlib" : ".syx")
                                                      : initialDir.getChildFile (title.removeCharacters (" ") + (korg ? ".mnlgxdlib" : ".syx"));
-            ed.chooseFile (true, u ("Zapisz bank ") + title, korg ? "*.mnlgxdlib" : "*.syx", initial, [this, b, korg, title] (juce::File f)
+            ed.chooseFile (true, u ("Save bank ") + title, korg ? "*.mnlgxdlib" : "*.syx", initial, [this, b, korg, title] (juce::File f)
             {
                 auto r = proc.saveBankFile ((BankId) b, f.withFileExtension (korg ? ".mnlgxdlib" : ".syx"));
-                ed.inform (proc.getSettings().saveOkConfirm || ! r.ok, title, r.ok ? u ("Bank zapisany: ") + f.getFileName() : r.message, ! r.ok);
+                ed.inform (proc.getSettings().saveOkConfirm || ! r.ok, title, r.ok ? u ("Bank saved: ") + f.getFileName() : r.message, ! r.ok);
             });
             break;
         }
         case A::InitBank:
-            ed.confirm (s.actionsConfirm, title, u ("Utworzyć pusty bank (500 x Init)?") + (b == (int) BankId::Synth ? u ("\nBank NIE zostanie wysłany do syntezatora.") : juce::String()),
+            ed.confirm (s.actionsConfirm, title, u ("Create an empty bank (500 x Init)?") + (b == (int) BankId::Synth ? u ("\nThe bank will NOT be sent to the synth.") : juce::String()),
                         [this, b] { proc.initBank ((BankId) b); });
             break;
         case A::ReceiveFromSynth:
             if (b != (int) BankId::Synth) { selectedBank = (int) BankId::Synth; refreshAll(); }
-            ed.confirm (s.receiveConfirm, "Minilogue XD", u ("Odebrać wszystkie 500 programów z syntezatora?\nTrwa to ok. ")
-                            + juce::String (s.transferMs * 500 / 1000 + 10) + u (" s (szybkość transferu w Settings)."), [this, safe]
+            ed.confirm (s.receiveConfirm, "Minilogue XD", u ("Receive all 500 programs from the synth?\nThis takes about ")
+                            + juce::String (s.transferMs * 500 / 1000 + 10) + u (" s (transfer speed is set in Settings)."), [this, safe]
             {
                 proc.startReceiveBank ([safe] (bool ok, juce::String msg)
                 {
                     if (safe == nullptr) return;
-                    safe->ed.inform (true, "Minilogue XD", msg + u ("\n\nNie zapomnij zapisać banku na dysku (Zapisz na dysk)."), ! ok);
+                    safe->ed.inform (true, "Minilogue XD", msg + u ("\n\nDon't forget to save the bank to disk (Save to disk)."), ! ok);
                 });
             });
             break;
         case A::SendToSynth:
-            if (! bank.loaded) { ed.inform (true, title, u ("Bank jest pusty."), true); return; }
-            ed.confirm (true, title, u ("Wysłać cały bank ") + title + u (" do syntezatora?\nWSZYSTKIE 500 programów w syntezatorze zostanie nadpisanych."), [this, b, safe]
+            if (! bank.loaded) { ed.inform (true, title, u ("The bank is empty."), true); return; }
+            ed.confirm (true, title, u ("Send the whole bank ") + title + u (" to the synth?\nALL 500 programs on the synth will be overwritten."), [this, b, safe]
             {
                 proc.startSendBank ((BankId) b, [safe] (bool ok, juce::String msg) { if (safe != nullptr) safe->ed.inform (true, "Minilogue XD", msg, ! ok); });
             });
             break;
         case A::Clear:
-            ed.confirm (bank.dirty || s.actionsConfirm, title, u ("Zamknąć bank") + (bank.dirty ? u (" (są niezapisane zmiany)") : juce::String()) + "?",
+            ed.confirm (bank.dirty || s.actionsConfirm, title, u ("Close the bank") + (bank.dirty ? u (" (it has unsaved changes)") : juce::String()) + "?",
                         [this, b] { proc.clearBank ((BankId) b); });
             break;
         case A::ExportList:
-            if (! bank.loaded) { ed.inform (true, title, u ("Bank jest pusty."), true); return; }
-            ed.chooseFile (true, u ("Eksport listy programów"), "*.txt", initialDir.getChildFile (title.removeCharacters (" ") + "_list.txt"),
+            if (! bank.loaded) { ed.inform (true, title, u ("The bank is empty."), true); return; }
+            ed.chooseFile (true, u ("Export program list"), "*.txt", initialDir.getChildFile (title.removeCharacters (" ") + "_list.txt"),
                            [this, b, title] (juce::File f)
             {
                 auto r = files::exportBankList (f.withFileExtension (".txt"), proc.bank (b), title);
-                ed.inform (true, title, r.ok ? u ("Lista zapisana.") : r.message, ! r.ok);
+                ed.inform (true, title, r.ok ? u ("List saved.") : r.message, ! r.ok);
             });
             break;
     }

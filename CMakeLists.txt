@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
-    # sources contain Polish UI strings - make MSVC read them as UTF-8
+    # UI strings contain non-ASCII characters (arrows, ±) - make MSVC read sources as UTF-8
     add_compile_options(/utf-8)
 endif()
 
