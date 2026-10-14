@@ -1,0 +1,88 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-14
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DXD_BUILD_TESTS=ON
+          else
+            cmake -S . -B build -DXD_BUILD_TESTS=ON
+          fi
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./build/XDCoreTests_artefacts/Release/XDCoreTests.exe
+          else
+            ./build/XDCoreTests_artefacts/Release/XDCoreTests
+          fi
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp -r "build/XDEditor_artefacts/Release/VST3/XD Editor.vst3" dist/
+          cp "build/XDEditor_artefacts/Release/Standalone/XD Editor.exe" dist/
+          cp README.md dist/
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist
+          cp -R "build/XDEditor_artefacts/Release/VST3/XD Editor.vst3" dist/
+          cp -R "build/XDEditor_artefacts/Release/AU/XD Editor.component" dist/
+          cp -R "build/XDEditor_artefacts/Release/Standalone/XD Editor.app" dist/
+          for b in dist/*.vst3 dist/*.component dist/*.app; do codesign --force --deep -s - "$b"; done
+          cp README.md dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XD-Editor-${{ matrix.name }}
+          path: dist
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Zip
+        run: |
+          (cd XD-Editor-Windows && zip -r ../XD-Editor-Windows.zip .)
+          (cd XD-Editor-macOS && zip -r -y ../XD-Editor-macOS.zip .)
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            XD-Editor-Windows.zip
+            XD-Editor-macOS.zip
