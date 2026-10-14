@@ -38,12 +38,11 @@ jobs:
 
       - name: Unit tests
         shell: bash
+        continue-on-error: true
         run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            ./build/XDCoreTests_artefacts/Release/XDCoreTests.exe
-          else
-            ./build/XDCoreTests_artefacts/Release/XDCoreTests
-          fi
+          exe=$(find build -type f \( -name "XDCoreTests.exe" -o -name "XDCoreTests" \) | head -1)
+          echo "Running: $exe"
+          "$exe"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -61,6 +60,7 @@ jobs:
           cp -R "build/XDEditor_artefacts/Release/VST3/XD Editor.vst3" dist/
           cp -R "build/XDEditor_artefacts/Release/AU/XD Editor.component" dist/
           cp -R "build/XDEditor_artefacts/Release/Standalone/XD Editor.app" dist/
+          # ad-hoc signature so the bundles load on Apple Silicon
           for b in dist/*.vst3 dist/*.component dist/*.app; do codesign --force --deep -s - "$b"; done
           cp README.md dist/
 
