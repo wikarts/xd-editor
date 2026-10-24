@@ -47,8 +47,22 @@ SettingsTab::SettingsTab (XDEditor& e) : ed (e), proc (e.proc)
     transfer.onValueChange = [this] { proc.getSettings().transferMs = (int) transfer.getValue(); proc.getSettings().changed(); };
     zoomIn.onClick = [this] { ed.setZoom (proc.getSettings().zoomPct + 5); refresh(); };
     zoomOut.onClick = [this] { ed.setZoom (proc.getSettings().zoomPct - 5); refresh(); };
+    mcpEnabled.setTooltip (u ("Lets Claude (or any MCP client) control XD Editor through a local server on 127.0.0.1. "
+                              "Connect with: claude mcp add --transport http xd-editor http://127.0.0.1:<port>/mcp"));
+    mcpEnabled.onClick = [this] { proc.getSettings().mcpEnabled = mcpEnabled.getToggleState(); proc.getSettings().changed(); };
+    mcpPort.setInputRestrictions (5, "0123456789");
+    mcpPort.setTooltip (u ("Port of the MCP server (1024-65535)."));
+    mcpPort.onReturnKey = mcpPort.onFocusLost = [this]
+    {
+        auto& st = proc.getSettings();
+        st.mcpPort = juce::jlimit (1024, 65535, mcpPort.getText().getIntValue());
+        st.changed();
+        refresh();
+    };
+    mcpStatus.setFont (juce::FontOptions (12.5f));
     for (juce::Component* c : { (juce::Component*) &saveMode, (juce::Component*) &nonCcMode, (juce::Component*) &transfer,
-                                (juce::Component*) &zoomIn, (juce::Component*) &zoomOut, (juce::Component*) &zoomLabel })
+                                (juce::Component*) &zoomIn, (juce::Component*) &zoomOut, (juce::Component*) &zoomLabel,
+                                (juce::Component*) &mcpEnabled, (juce::Component*) &mcpPort, (juce::Component*) &mcpStatus })
         addAndMakeVisible (c);
 
     // MIDI
@@ -148,6 +162,9 @@ void SettingsTab::refresh()
     zoomLabel.setText ("Zoom " + juce::String (s.zoomPct) + "%", juce::dontSendNotification);
     channel.setSelectedId (s.channel + 1, juce::dontSendNotification);
     route.setSelectedId (s.outputRoute + 1, juce::dontSendNotification);
+    mcpEnabled.setToggleState (s.mcpEnabled, juce::dontSendNotification);
+    if (! mcpPort.hasKeyboardFocus (true)) mcpPort.setText (juce::String (s.mcpPort), false);
+    mcpStatus.setText (proc.getMcp().status(), juce::dontSendNotification);
 
     juce::String st;
     st << (proc.isConnected() ? u ("Connected: minilogue xd, OS ") + proc.getOsVersion() : u ("No reply to Device Inquiry.")) << "\n";
@@ -192,6 +209,10 @@ void SettingsTab::resized()
     zoomOut.setBounds (18, y, 32, 24);
     zoomLabel.setBounds (56, y, 120, 24);
     zoomIn.setBounds (180, y, 32, 24);
+    y += 34;
+    mcpEnabled.setBounds (18, y, 220, 24);
+    mcpPort.setBounds (244, y, 70, 24);
+    mcpStatus.setBounds (18, y + 28, 380, 24);
 
     midiIn.setBounds (486, 30, 240, 24);
     refreshDevices.setBounds (732, 30, 92, 24);

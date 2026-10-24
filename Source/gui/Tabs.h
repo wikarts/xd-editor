@@ -124,7 +124,9 @@ private:
     juce::Slider transfer;
     juce::TextButton zoomIn { "+" }, zoomOut { "-" }, inquiry { "Device Inquiry" };
     juce::TextButton loadNames { "Load USER names" }, resetNames { "Reset USER names" }, refreshDevices { "Refresh" };
-    juce::Label zoomLabel, statusLabel;
+    juce::Label zoomLabel, statusLabel, mcpStatus;
+    juce::ToggleButton mcpEnabled { "MCP server (Claude)" };
+    juce::TextEditor mcpPort;
     juce::TextEditor about;
     juce::ComboBox reportKind;
     juce::TextButton display { "Display" }, exportButton { "Export" };

@@ -32,6 +32,7 @@ XDProcessor::XDProcessor()
 
     settings->addChangeListener (this);
     midi->addClient (this);
+    mcp->add (this);
     applyMidiSettings();
     startTimer (20);
     deviceInquiry();
@@ -43,6 +44,7 @@ XDProcessor::~XDProcessor()
     cancelPendingUpdate();
     settings->removeChangeListener (this);
     midi->removeClient (this);
+    mcp->remove (this);
     for (auto* p : params) p->removeListener (this);
     morphParam->removeListener (this);
 }
@@ -825,6 +827,14 @@ void XDProcessor::setDirectMode (bool on)
     notify (cSelection | cLcd);
 }
 
+void XDProcessor::setLibDestination (int bank, int slot)
+{
+    libDstBank = bank;
+    libDstSlot = slot;
+    morphTargetChanged();
+    notify (cSelection);
+}
+
 bool XDProcessor::hasMorphTarget() const
 {
     return juce::isPositiveAndBelow (libDstBank, numBanks) && juce::isPositiveAndBelow (libDstSlot, numSlots)
@@ -910,6 +920,7 @@ void XDProcessor::timerCallback()
 void XDProcessor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     applyMidiSettings();
+    mcp->applySettings();
     notify (cStatus | cParam | cBanks);
 }
 
@@ -929,11 +940,10 @@ juce::String XDProcessor::buildInfoReport (ReportKind k) const
             const int s = libSrcFirst();
             if (! juce::isPositiveAndBelow (libSrcBank, numBanks) || s < 0 || ! juce::isPositiveAndBelow (libDstBank, numBanks) || libDstSlot < 0)
                 return juce::String::fromUTF8 ("Select a source (left click) and a destination (right click) in the Librarian tab.");
-            auto title = [] (int b, int slot) { return bankTitle ((BankId) b) + " " + juce::String (slot + 1).paddedLeft ('0', 3); };
             auto& A = banks[(size_t) libSrcBank];
             auto& B = banks[(size_t) libDstBank];
-            return buildReport (A.progs[(size_t) s], A.info[(size_t) s], title (libSrcBank, s),
-                                &B.progs[(size_t) libDstSlot], &B.info[(size_t) libDstSlot], title (libDstBank, libDstSlot),
+            return buildReport (A.progs[(size_t) s], A.info[(size_t) s], slotTitle (libSrcBank, s),
+                                &B.progs[(size_t) libDstSlot], &B.info[(size_t) libDstSlot], slotTitle (libDstBank, libDstSlot),
                                 k == ReportKind::LibraryDifferences, names);
         }
     }

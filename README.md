@@ -89,6 +89,27 @@ talks to the synth over its own MIDI ports, so your DAW's MIDI track can keep se
   won't break existing automation.
 * With several instances, data coming from the synth goes to the instance you last worked with.
 
+## Controlling XD Editor from Claude (MCP)
+
+XD Editor has a built-in MCP server so Claude, or any other MCP client, can edit programs, the librarian, globals and morphing.
+It is off by default. Turn on "MCP server (Claude)" in the Settings & Info tab; the port defaults to 7801.
+The server only listens on 127.0.0.1, and when several instances are open it drives the one you last worked with.
+
+```
+claude mcp add --transport http xd-editor http://127.0.0.1:7801/mcp
+```
+
+Claude Desktop only speaks stdio, so it goes through the `mcp-remote` bridge. Add this to `claude_desktop_config.json`
+and restart Claude Desktop while XD Editor is running:
+
+```json
+"mcpServers": {
+  "xd-editor": { "command": "npx", "args": ["-y", "mcp-remote", "http://127.0.0.1:7801/mcp"] }
+}
+```
+
+The tools cover what the editor can do, so the sequencer is read-only there too.
+
 ## Building from source
 
 Requirements: CMake ≥ 3.22 and a C++17 compiler (Visual Studio 2022 / Xcode 15 / GCC 11+). JUCE 8.0.4 is
@@ -124,6 +145,7 @@ Source/core/            program format (1024 bytes), parameter table, SysEx, fil
 Source/MidiEngine       shared MIDI ports, CC/NRPN parser
 Source/PluginProcessor  parameters/automation, send/receive, transfers, DAW project state
 Source/Librarian        bank operations
+Source/McpServer        local MCP server (HTTP transport); Source/McpTools has the tools
 Source/gui/             look & feel, controls, the five tabs
 Tests/                  unit and integration tests
 ```

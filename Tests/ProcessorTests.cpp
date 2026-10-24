@@ -250,6 +250,19 @@ int main()
         q.setMorph (1.0);
         CHECK (q.getValue (t.indexOf ("cutoff")) == 500);
         run (q);
+
+        juce::var mcpReply;
+        auto mcpCall = [&] (const char* values)
+        {
+            auto request = juce::JSON::parse (juce::String (R"({"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"set_params","arguments":{"values":)") + values + "}}}");
+            mcp::handle (q, request, [&] (juce::var r) { mcpReply = r; });
+            return (bool) mcpReply["result"]["isError"];
+        };
+        CHECK (! mcpCall (R"({"cutoff":321,"vco1_wave":"saw"})"));
+        CHECK (q.getValue (t.indexOf ("cutoff")) == 321 && q.getValue (t.indexOf ("vco1_wave")) == 2);
+        CHECK (mcpCall (R"({"cutoff":5,"nope":1})"));
+        CHECK (q.getValue (t.indexOf ("cutoff")) == 321);
+        run (q);
     }
     std::cout << (failures == 0 ? "ALL PROCESSOR TESTS PASSED" : "PROCESSOR TESTS FAILED") << " (" << failures << ")\n";
     return failures == 0 ? 0 : 1;

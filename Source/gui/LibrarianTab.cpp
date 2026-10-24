@@ -2,8 +2,6 @@
 
 using namespace xd;
 static juce::String u (const char* s) { return juce::String::fromUTF8 (s); }
-static juce::String slotName (int bank, int slot) { return bankTitle ((BankId) bank) + " " + juce::String (slot + 1).paddedLeft ('0', 3); }
-
 // ======================================================================= bank list
 class BankList : public juce::Component
 {
@@ -103,7 +101,7 @@ private:
             auto& p = owner.proc;
             auto& b = p.bank (owner.bank);
             p.loadProgram (b.progs[(size_t) row], b.info[(size_t) row], p.canTalkToSynth());
-            p.lcdMessage (u ("Loaded ") + slotName (owner.bank, row) + " " + b.progs[(size_t) row].getName());
+            p.lcdMessage (u ("Loaded ") + slotTitle (owner.bank, row) + " " + b.progs[(size_t) row].getName());
         }
     } inner;
 };
@@ -241,13 +239,13 @@ void LibrarianTab::refreshAll()
     const int src = proc.libSrcFirst();
     if (src >= 0 && juce::isPositiveAndBelow (proc.libSrcBank, 3))
     {
-        s << u ("Source: ") << slotName (proc.libSrcBank, src) << "  " << proc.bank (proc.libSrcBank).progs[(size_t) src].getName();
+        s << u ("Source: ") << slotTitle (proc.libSrcBank, src) << "  " << proc.bank (proc.libSrcBank).progs[(size_t) src].getName();
         if (proc.libSrcSlots.size() > 1) s << "  (+" << (proc.libSrcSlots.size() - 1) << u (" more selected)");
     }
     else s << u ("Source: -");
     s << "\n";
     if (proc.libDstSlot >= 0 && juce::isPositiveAndBelow (proc.libDstBank, 3))
-        s << u ("Destination: ") << slotName (proc.libDstBank, proc.libDstSlot) << "  " << proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName();
+        s << u ("Destination: ") << slotTitle (proc.libDstBank, proc.libDstSlot) << "  " << proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName();
     else s << u ("Destination: -");
     selectionInfo.setText (s, juce::dontSendNotification);
 
@@ -256,7 +254,7 @@ void LibrarianTab::refreshAll()
     morphKnob.repaint();
     updatingMorph = false;
     morphInfo.setText (proc.hasMorphTarget()
-                           ? u ("From: current program (") + proc.getCurrent().getName() + u (")\nTo: ") + slotName (proc.libDstBank, proc.libDstSlot) + "  "
+                           ? u ("From: current program (") + proc.getCurrent().getName() + u (")\nTo: ") + slotTitle (proc.libDstBank, proc.libDstSlot) + "  "
                                  + proc.bank (proc.libDstBank).progs[(size_t) proc.libDstSlot].getName()
                                  + u ("\nLocked sections are not changed.")
                            : u ("Choose a destination (right click in a list).\nSwitch LCD OFF and turn the Morph knob."),
@@ -278,10 +276,7 @@ void LibrarianTab::selectSource (int bank, const juce::Array<int>& slots)
 
 void LibrarianTab::selectDestination (int bank, int slot)
 {
-    proc.libDstBank = bank;
-    proc.libDstSlot = slot;
-    proc.morphTargetChanged();
-    proc.uiNotify (XDProcessor::cSelection);
+    proc.setLibDestination (bank, slot);
 }
 
 juce::Array<int> LibrarianTab::previewTargets (int bank) const
@@ -326,7 +321,7 @@ void LibrarianTab::runProgramAction()
     switch (a)
     {
         case A::LoadToPanel:
-            ed.confirm (s.loadConfirm, "Load", u ("Load ") + slotName (sb, ss) + u (" into the panel and the synth's edit buffer?"), [this, sb, ss]
+            ed.confirm (s.loadConfirm, "Load", u ("Load ") + slotTitle (sb, ss) + u (" into the panel and the synth's edit buffer?"), [this, sb, ss]
             {
                 const bool send = proc.canTalkToSynth();
                 proc.loadProgram (proc.bank (sb).progs[(size_t) ss], proc.bank (sb).info[(size_t) ss], send);
@@ -335,19 +330,19 @@ void LibrarianTab::runProgramAction()
             break;
         case A::InitToPanel: ed.doInit(); break;
         case A::LoadFileToDest:
-            ed.chooseFile (false, u ("Program to put into ") + slotName (db, ds), "*.syx;*.mnlgxdprog;*.prog_bin",
+            ed.chooseFile (false, u ("Program to put into ") + slotTitle (db, ds), "*.syx;*.mnlgxdprog;*.prog_bin",
                            juce::File (s.lastProgramDir), [this, db, ds, synthNote] (juce::File f)
             {
                 auto p = std::make_shared<Program>();
                 auto info = std::make_shared<AddInfo>();
                 auto r = files::loadProgram (f, *p, *info);
                 if (! r.ok) { ed.inform (true, "Load", r.message, true); return; }
-                ed.confirm (proc.getSettings().actionsConfirm, "Load", u ("Put \"") + p->getName() + u ("\" into ") + slotName (db, ds) + "?" + synthNote,
+                ed.confirm (proc.getSettings().actionsConfirm, "Load", u ("Put \"") + p->getName() + u ("\" into ") + slotTitle (db, ds) + "?" + synthNote,
                             [this, db, ds, p, info] { proc.lcdMessage (lib::putProgram (proc, db, ds, *p, *info)); });
             });
             break;
         case A::InitDest:
-            ed.confirm (s.actionsConfirm, "Init", u ("Put the Init program into ") + slotName (db, ds) + "?" + synthNote,
+            ed.confirm (s.actionsConfirm, "Init", u ("Put the Init program into ") + slotTitle (db, ds) + "?" + synthNote,
                         [this, db, ds] { proc.lcdMessage (lib::initSlot (proc, db, ds)); });
             break;
         case A::SaveSrcToFile:
@@ -355,7 +350,7 @@ void LibrarianTab::runProgramAction()
             auto& b = proc.bank (sb);
             auto name = b.progs[(size_t) ss].getName().trim();
             auto initial = juce::File (s.lastProgramDir).getChildFile ((name.isEmpty() ? juce::String ("program") : name) + (s.saveMode == 1 ? ".mnlgxdprog" : ".syx"));
-            ed.chooseFile (true, u ("Save ") + slotName (sb, ss), "*.syx;*.mnlgxdprog", initial, [this, sb, ss] (juce::File f)
+            ed.chooseFile (true, u ("Save ") + slotTitle (sb, ss), "*.syx;*.mnlgxdprog", initial, [this, sb, ss] (juce::File f)
             {
                 auto& bk = proc.bank (sb);
                 auto r = f.hasFileExtension (".mnlgxdprog") ? files::saveProgramXdProg (f, bk.progs[(size_t) ss], bk.info[(size_t) ss])
@@ -365,7 +360,7 @@ void LibrarianTab::runProgramAction()
             break;
         }
         case A::BufferToDest:
-            ed.confirm (s.actionsConfirm, "Buffer", u ("Receive the synth's edit buffer and store it in ") + slotName (db, ds) + "?" + synthNote, [this, db, ds]
+            ed.confirm (s.actionsConfirm, "Buffer", u ("Receive the synth's edit buffer and store it in ") + slotTitle (db, ds) + "?" + synthNote, [this, db, ds]
             {
                 juce::Component::SafePointer<LibrarianTab> safe (this);
                 proc.requestBufferToBank ((BankId) db, ds, [safe] (bool ok, juce::String msg)
@@ -375,11 +370,11 @@ void LibrarianTab::runProgramAction()
             });
             break;
         case A::Move:
-            ed.confirm (s.actionsConfirm, "Move", u ("Move ") + slotName (sb, ss) + " -> " + slotName (db, ds) + u ("?\nThe source will be replaced by the Init program.") + synthNote,
+            ed.confirm (s.actionsConfirm, "Move", u ("Move ") + slotTitle (sb, ss) + " -> " + slotTitle (db, ds) + u ("?\nThe source will be replaced by the Init program.") + synthNote,
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::move (proc, sb, ss, db, ds)); });
             break;
         case A::Copy:
-            ed.confirm (s.actionsConfirm, "Copy", u ("Copy ") + slotName (sb, ss) + " -> " + slotName (db, ds) + "?" + synthNote,
+            ed.confirm (s.actionsConfirm, "Copy", u ("Copy ") + slotTitle (sb, ss) + " -> " + slotTitle (db, ds) + "?" + synthNote,
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::copy (proc, sb, { ss }, db, ds, true)); });
             break;
         case A::CopyMultiAsIs:
@@ -394,7 +389,7 @@ void LibrarianTab::runProgramAction()
             break;
         }
         case A::Swap:
-            ed.confirm (s.actionsConfirm, "Swap", u ("Swap ") + slotName (sb, ss) + " <-> " + slotName (db, ds) + "?"
+            ed.confirm (s.actionsConfirm, "Swap", u ("Swap ") + slotTitle (sb, ss) + " <-> " + slotTitle (db, ds) + "?"
                             + ((sb == (int) BankId::Synth || toSynth) ? u ("\n\nThis changes the synth's memory.") : juce::String()),
                         [this, sb, ss, db, ds] { proc.lcdMessage (lib::swap (proc, sb, ss, db, ds)); });
             break;
