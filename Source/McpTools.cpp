@@ -130,8 +130,6 @@ juce::File fileArg (const juce::var& args, const char* name)
     return juce::File (s);
 }
 
-juce::String slotTitle (int b, int slot) { return bankTitle ((BankId) b) + " " + juce::String (slot + 1).paddedLeft ('0', 3); }
-
 int sectionArg (const juce::String& name)
 {
     juce::StringArray all;
@@ -196,7 +194,7 @@ juce::var status (XDProcessor& p)
 juce::var morphState (XDProcessor& p)
 {
     auto locks = obj ({});
-    for (int s = 0; s < numSections; ++s) set (locks, sectionName ((Section) s), p.morphLocks[(size_t) s]);
+    for (int s = 0; s < (int) Section::Sequencer; ++s) set (locks, sectionName ((Section) s), p.morphLocks[(size_t) s]);
     juce::var target;
     if (p.hasMorphTarget())
         target = obj ({ { "bank", bankKey (p.libDstBank) }, { "slot", p.libDstSlot + 1 },
@@ -289,6 +287,7 @@ void answer (Result done, bool ok, const juce::String& text)
 
 void startTransfer (XDProcessor& p, std::function<void (XDProcessor::Done)> start, Result done, const juce::String& started)
 {
+    if (p.isTransferring()) throw Fail { u ("Another transfer is in progress.") };
     start ([&p] (bool, juce::String m) { p.lastTransferResult = m; p.lcdMessage (m, 5000); });
     if (! p.isTransferring()) throw Fail { p.lastTransferResult.isNotEmpty() ? p.lastTransferResult : u ("The transfer could not start.") };
     p.lastTransferResult.clear();
@@ -313,6 +312,23 @@ IoResult saveProgram (XDProcessor& p, const juce::File& f, const Program& prog, 
 {
     return f.hasFileExtension (".mnlgxdprog") ? files::saveProgramXdProg (f, prog, info)
                                               : files::saveProgramSyx (f, prog, info, p.getSettings().channel);
+}
+
+juce::var slotPairSchema()
+{
+    return schema ({ { "src_bank", bankProp() }, { "src_slot", slotProp() }, { "dst_bank", bankProp() }, { "dst_slot", slotProp() } },
+                   { "src_bank", "src_slot", "dst_bank", "dst_slot" });
+}
+
+Handler slotPairAction (juce::String (*action) (XDProcessor&, int, int, int, int))
+{
+    return sync ([action] (XDProcessor& p, const juce::var& args)
+    {
+        const int sb = bankArg (args, "src_bank"), ss = slotArg (args, "src_slot"), db = bankArg (args, "dst_bank"), ds = slotArg (args, "dst_slot");
+        loadedBank (p, sb);
+        loadedBank (p, db);
+        return message (action (p, sb, ss, db, ds));
+    });
 }
 
 juce::var ioResult (const IoResult& r, const juce::String& okText)
@@ -381,6 +397,8 @@ const std::vector<Tool>& tools()
               {
                   const auto* d = t.byKey (prop.name.toString());
                   if (d == nullptr) throw Fail { u ("Unknown parameter: ") + prop.name.toString() + u (". Use list_params.") };
+                  if (! d->isRealtime() && p.getSettings().nonCcMode != 0)
+                      throw Fail { d->key + u (": parameters without CC are disabled in Settings (Green params).") };
                   changes.emplace_back (d->index, valueFrom (prop.value, d->minV, d->maxV, d->key, [&p, d] (int x)
                   {
                       return formatInContext (*d, p.getCurrent(), &p.getSettings().userNames, x);
@@ -509,7 +527,7 @@ const std::vector<Tool>& tools()
           schema ({ { "target", slotRef (u ("Morph target (the librarian destination).")) },
                     { "locks", type ("object", u ("Map of section name to true (locked) / false, e.g. {\"Filter\": true}.")) },
                     { "amount", obj ({ { "type", "number" }, { "minimum", 0 }, { "maximum", 100 }, { "description", u ("Morph amount in percent.") } }) },
-                    { "ignore_locks", type ("boolean", u ("Morph every section, like the Morph 0% / 100% buttons.")) } }),
+                    { "ignore_locks", type ("boolean", u ("With amount 0 or 100: morph every section, like the Morph 0% / 100% buttons.")) } }),
           sync ([] (XDProcessor& p, const juce::var& args)
           {
               int tb = -1, ts = -1;
@@ -525,7 +543,12 @@ const std::vector<Tool>& tools()
               {
                   auto* l = args["locks"].getDynamicObject();
                   if (l == nullptr) throw Fail { u ("locks must be an object.") };
-                  for (auto& prop : l->getProperties()) locks.emplace_back (sectionArg (prop.name.toString()), (bool) prop.value);
+                  for (auto& prop : l->getProperties())
+                  {
+                      const int s = sectionArg (prop.name.toString());
+                      if (s >= (int) Section::Sequencer) throw Fail { sectionName ((Section) s) + u (" has no morph lock.") };
+                      locks.emplace_back (s, (bool) prop.value);
+                  }
               }
               double amount = -1.0;
               if (args.hasProperty ("amount"))
@@ -533,18 +556,14 @@ const std::vector<Tool>& tools()
                   if (! isNumber (args["amount"])) throw Fail { u ("amount must be a number.") };
                   amount = juce::jlimit (0.0, 100.0, (double) args["amount"]);
               }
+              const bool ignoreLocks = args["ignore_locks"];
+              if (ignoreLocks && amount != 0.0 && amount != 100.0) throw Fail { u ("ignore_locks only applies to amount 0 or 100, like the Morph 0% / 100% buttons.") };
               if (amount >= 0.0 && tb < 0 && ! p.hasMorphTarget()) throw Fail { u ("No morph target: set target first.") };
 
-              if (tb >= 0)
-              {
-                  p.libDstBank = tb;
-                  p.libDstSlot = ts;
-                  p.morphTargetChanged();
-                  p.uiNotify (XDProcessor::cSelection);
-              }
+              if (tb >= 0) p.setLibDestination (tb, ts);
               for (auto [s, on] : locks) p.morphLocks[(size_t) s] = on;
               if (! locks.empty()) p.uiNotify (XDProcessor::cMorph);
-              if (amount >= 0.0) p.setMorph (amount / 100.0, false, (bool) args["ignore_locks"]);
+              if (amount >= 0.0) p.setMorph (amount / 100.0, false, ignoreLocks);
               return morphState (p);
           }) },
 
@@ -623,27 +642,9 @@ const std::vector<Tool>& tools()
               return message (lib::copy (p, sb, slots, db, ds, collated));
           }) },
 
-        { "move", u ("Moves a program to another slot; the source becomes the Init program."),
-          schema ({ { "src_bank", bankProp() }, { "src_slot", slotProp() }, { "dst_bank", bankProp() }, { "dst_slot", slotProp() } },
-                  { "src_bank", "src_slot", "dst_bank", "dst_slot" }),
-          sync ([] (XDProcessor& p, const juce::var& args)
-          {
-              const int sb = bankArg (args, "src_bank"), ss = slotArg (args, "src_slot"), db = bankArg (args, "dst_bank"), ds = slotArg (args, "dst_slot");
-              loadedBank (p, sb);
-              loadedBank (p, db);
-              return message (lib::move (p, sb, ss, db, ds));
-          }) },
+        { "move", u ("Moves a program to another slot; the source becomes the Init program."), slotPairSchema(), slotPairAction (lib::move) },
 
-        { "swap", u ("Swaps two programs."),
-          schema ({ { "src_bank", bankProp() }, { "src_slot", slotProp() }, { "dst_bank", bankProp() }, { "dst_slot", slotProp() } },
-                  { "src_bank", "src_slot", "dst_bank", "dst_slot" }),
-          sync ([] (XDProcessor& p, const juce::var& args)
-          {
-              const int sb = bankArg (args, "src_bank"), ss = slotArg (args, "src_slot"), db = bankArg (args, "dst_bank"), ds = slotArg (args, "dst_slot");
-              loadedBank (p, sb);
-              loadedBank (p, db);
-              return message (lib::swap (p, sb, ss, db, ds));
-          }) },
+        { "swap", u ("Swaps two programs."), slotPairSchema(), slotPairAction (lib::swap) },
 
         { "init_slot", u ("Puts the Init program into a bank slot."),
           schema ({ { "bank", bankProp() }, { "slot", slotProp() } }, { "bank", "slot" }),
@@ -703,16 +704,19 @@ const std::vector<Tool>& tools()
               const bool toSlot = args.hasProperty ("bank");
               const int b = toSlot ? bankArg (args, "bank") : -1, s = toSlot ? slotArg (args, "slot") : -1;
               if (toSlot) loadedBank (p, b);
+              if (toSlot && f.hasFileExtension (".mnlgxdlib")) throw Fail { u ("A .mnlgxdlib can only be loaded into the panel or as a bank (load_bank_file).") };
               Program prog;
               AddInfo info;
               auto r = files::loadProgram (f, prog, info);
               if (! r.ok) throw Fail { r.message };
               p.getSettings().lastProgramDir = f.getParentDirectory().getFullPathName();
+              p.getSettings().save();
               if (toSlot) return message (lib::putProgram (p, b, s, prog, info) + u (" -> ") + slotTitle (b, s));
               return message (loadToPanel (p, prog, info));
           }) },
 
-        { "save_program_file", u ("Saves the panel's program (or a bank slot when bank and slot are given) to a .syx or .mnlgxdprog file."),
+        { "save_program_file", u ("Saves the panel's program (or a bank slot when bank and slot are given) to a .syx or .mnlgxdprog file. "
+                                   "For the panel, a .mnlgxdprog copy is also written next to the .syx when the save mode in Settings is \"Both\"."),
           schema ({ { "path", type ("string", u ("Absolute path ending in .syx or .mnlgxdprog.")) }, { "bank", bankProp() }, { "slot", slotProp() } }, { "path" }),
           sync ([] (XDProcessor& p, const juce::var& args)
           {
@@ -723,9 +727,15 @@ const std::vector<Tool>& tools()
                   auto& bank = loadedBank (p, b);
                   return ioResult (saveProgram (p, f, bank.progs[(size_t) s], bank.info[(size_t) s]), u ("Saved: ") + f.getFullPathName());
               }
+              auto& st = p.getSettings();
               p.currentInfo().date = juce::Time::getCurrentTime().toISO8601 (true);
-              auto out = ioResult (saveProgram (p, f, p.getCurrent(), p.currentInfo()), u ("Saved: ") + f.getFullPathName());
-              p.getSettings().lastProgramDir = f.getParentDirectory().getFullPathName();
+              auto r = saveProgram (p, f, p.getCurrent(), p.currentInfo());
+              if (r.ok && f.hasFileExtension (".syx") && st.saveMode == 2)
+                  r = files::saveProgramXdProg (f.withFileExtension (".mnlgxdprog"), p.getCurrent(), p.currentInfo());
+              auto out = ioResult (r, u ("Saved: ") + f.getFullPathName());
+              st.lastProgramDir = f.getParentDirectory().getFullPathName();
+              st.lastSysexName = f.getFileName();
+              st.save();
               p.markCurrentSaved();
               return out;
           }) },
@@ -807,10 +817,11 @@ const char* instructions =
 
 juce::var rpcResult (const juce::var& id, const juce::var& result) { return obj ({ { "jsonrpc", "2.0" }, { "id", id }, { "result", result } }); }
 
-juce::var rpcError (const juce::var& id, int code, const juce::String& m)
+}
+
+juce::var error (const juce::var& id, int code, const juce::String& m)
 {
     return obj ({ { "jsonrpc", "2.0" }, { "id", id }, { "error", obj ({ { "code", code }, { "message", m } }) } });
-}
 }
 
 void handle (XDProcessor& p, const juce::var& msg, Reply reply)
@@ -855,9 +866,9 @@ void handle (XDProcessor& p, const juce::var& msg, Reply reply)
             catch (const Fail& f) { finish ({}, f.message); }
             return;
         }
-        reply (rpcError (id, -32602, "Unknown tool: " + name));
+        reply (error (id, -32602, "Unknown tool: " + name));
         return;
     }
-    reply (rpcError (id, -32601, "Method not found: " + method));
+    reply (error (id, -32601, "Method not found: " + method));
 }
 }

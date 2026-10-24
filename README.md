@@ -99,7 +99,15 @@ The server only listens on 127.0.0.1, and when several instances are open it dri
 claude mcp add --transport http xd-editor http://127.0.0.1:7801/mcp
 ```
 
-Claude Desktop only speaks stdio, so it needs the `mcp-remote` bridge: `npx mcp-remote http://127.0.0.1:7801/mcp`.
+Claude Desktop only speaks stdio, so it goes through the `mcp-remote` bridge. Add this to `claude_desktop_config.json`
+and restart Claude Desktop while XD Editor is running:
+
+```json
+"mcpServers": {
+  "xd-editor": { "command": "npx", "args": ["-y", "mcp-remote", "http://127.0.0.1:7801/mcp"] }
+}
+```
+
 The tools cover what the editor can do, so the sequencer is read-only there too.
 
 ## Building from source

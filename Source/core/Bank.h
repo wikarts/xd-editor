@@ -7,6 +7,7 @@ namespace xd
 enum class BankId { Disk1 = 0, Disk2 = 1, Synth = 2 };
 constexpr int numBanks = 3;
 juce::String bankTitle (BankId);
+juce::String slotTitle (int bank, int slot);
 
 struct Bank
 {

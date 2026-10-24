@@ -47,7 +47,7 @@ void McpServer::stop()
 
 juce::String McpServer::status() const
 {
-    if (port == 0) return juce::String::fromUTF8 ("MCP server off.");
+    if (port == 0) return "MCP server off.";
     if (failed) return "Cannot open port " + juce::String (port) + " (already in use?).";
     return "MCP: http://127.0.0.1:" + juce::String (port) + "/mcp";
 }
@@ -80,23 +80,38 @@ static void respond (juce::StreamingSocket& s, int code, const juce::String& rea
     s.write (r.toRawUTF8(), (int) r.getNumBytesAsUTF8());
 }
 
+bool McpServer::readSome (juce::StreamingSocket& s, juce::MemoryBlock& data, int maxBytes)
+{
+    for (int waited = 0; waited < 5000 && ! threadShouldExit(); waited += 100)
+    {
+        const int ready = s.waitUntilReady (true, 100);
+        if (ready < 0) return false;
+        if (ready == 0) continue;
+        char buf[8192];
+        const int n = s.read (buf, juce::jmin ((int) sizeof (buf), maxBytes), false);
+        if (n <= 0) return false;
+        data.append (buf, (size_t) n);
+        return true;
+    }
+    return false;
+}
+
 void McpServer::serve (juce::StreamingSocket& s)
 {
     constexpr int maxHeader = 64 * 1024, maxBody = 4 * 1024 * 1024;
-    juce::MemoryOutputStream data;
-    char buf[8192];
-    int headerEnd = -1;
-    while (headerEnd < 0)
+    const char separator[] = "\r\n\r\n";
+    juce::MemoryBlock data;
+    const char* headerEnd = nullptr;
+    while (headerEnd == nullptr)
     {
-        if (data.getDataSize() > (size_t) maxHeader || s.waitUntilReady (true, 5000) != 1) return;
-        const int n = s.read (buf, (int) sizeof (buf), false);
-        if (n <= 0) return;
-        data.write (buf, (size_t) n);
-        headerEnd = data.toString().indexOf ("\r\n\r\n");
+        if (data.getSize() > (size_t) maxHeader || ! readSome (s, data, maxHeader)) return;
+        auto* begin = (const char*) data.getData();
+        auto* end = begin + data.getSize();
+        auto* found = std::search (begin, end, separator, separator + 4);
+        if (found != end) headerEnd = found;
     }
-    const auto raw = data.getMemoryBlock();
-    const auto head = juce::String::fromUTF8 ((const char*) raw.getData(), headerEnd);
-    auto lines = juce::StringArray::fromLines (head);
+    const auto headerSize = (size_t) (headerEnd - (const char*) data.getData());
+    auto lines = juce::StringArray::fromLines (juce::String::fromUTF8 ((const char*) data.getData(), (int) headerSize));
     const auto requestLine = juce::StringArray::fromTokens (lines[0], " ", {});
     const auto method = requestLine[0];
     const auto path = requestLine[1].upToFirstOccurrenceOf ("?", false, false);
@@ -112,19 +127,14 @@ void McpServer::serve (juce::StreamingSocket& s)
 
     const int length = headers["content-length"].getIntValue();
     if (length < 0 || length > maxBody) { respond (s, 413, "Payload Too Large"); return; }
-    juce::MemoryBlock body ((const char*) raw.getData() + headerEnd + 4, raw.getSize() - (size_t) headerEnd - 4);
+    juce::MemoryBlock body ((const char*) data.getData() + headerSize + 4, data.getSize() - headerSize - 4);
     while ((int) body.getSize() < length)
-    {
-        if (s.waitUntilReady (true, 5000) != 1) return;
-        const int n = s.read (buf, juce::jmin ((int) sizeof (buf), length - (int) body.getSize()), false);
-        if (n <= 0) return;
-        body.append (buf, (size_t) n);
-    }
+        if (! readSome (s, body, length - (int) body.getSize())) return;
 
     juce::var message;
     if (juce::JSON::parse (body.toString(), message).failed() || ! message.isObject())
     {
-        respond (s, 400, "Bad Request", R"({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}})");
+        respond (s, 400, "Bad Request", juce::JSON::toString (mcp::error ({}, -32700, "Parse error"), true));
         return;
     }
     const auto out = dispatch (message);
@@ -142,30 +152,24 @@ juce::String McpServer::dispatch (const juce::var& message)
         bool answered = false;
     };
     auto state = std::make_shared<State>();
-    juce::WeakReference<McpServer> self (this);
-    juce::MessageManager::callAsync ([self, state, message]
+    auto reply = [state] (juce::var r)
     {
-        auto* p = self != nullptr ? self->target() : nullptr;
-        if (p == nullptr) { state->ready.signal(); return; }
-        mcp::handle (*p, message, [state] (juce::var r)
-        {
-            const juce::ScopedLock sl (state->lock);
-            state->answered = true;
-            if (! r.isVoid()) state->out = juce::JSON::toString (r, true);
-            state->ready.signal();
-        });
+        const juce::ScopedLock sl (state->lock);
+        state->answered = true;
+        if (! r.isVoid()) state->out = juce::JSON::toString (r, true);
+        state->ready.signal();
+    };
+    juce::WeakReference<McpServer> self (this);
+    juce::MessageManager::callAsync ([self, message, reply]
+    {
+        if (auto* p = self != nullptr ? self->target() : nullptr) mcp::handle (*p, message, reply);
+        else if (message.hasProperty ("id")) reply (mcp::error (message["id"], -32603, "No XD Editor instance is open."));
+        else reply ({});
     });
     for (int waited = 0; ! state->ready.wait (100); waited += 100)
         if (threadShouldExit() || waited > 30000) break;
 
     const juce::ScopedLock sl (state->lock);
     if (state->answered || ! message.hasProperty ("id")) return state->out;
-    auto* error = new juce::DynamicObject();
-    error->setProperty ("code", -32603);
-    error->setProperty ("message", "XD Editor did not answer in time.");
-    auto* r = new juce::DynamicObject();
-    r->setProperty ("jsonrpc", "2.0");
-    r->setProperty ("id", message["id"]);
-    r->setProperty ("error", juce::var (error));
-    return juce::JSON::toString (juce::var (r), true);
+    return juce::JSON::toString (mcp::error (message["id"], -32603, "XD Editor did not answer in time."), true);
 }

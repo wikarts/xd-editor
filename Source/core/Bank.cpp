@@ -14,6 +14,11 @@ juce::String bankTitle (BankId b)
     return {};
 }
 
+juce::String slotTitle (int bank, int slot)
+{
+    return bankTitle ((BankId) bank) + " " + juce::String (slot + 1).paddedLeft ('0', 3);
+}
+
 void Bank::clear()
 {
     for (auto& p : progs) p.initialise();

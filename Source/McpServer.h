@@ -10,7 +10,8 @@ using Reply = std::function<void (juce::var response)>;
 
 /** Handles one JSON-RPC message on the message thread. A void response means a notification. */
 void handle (XDProcessor&, const juce::var& message, Reply);
-} // namespace mcp
+juce::var error (const juce::var& id, int code, const juce::String& message);
+}
 
 /** MCP server (Streamable HTTP on 127.0.0.1) shared by every instance; it drives the active instance. */
 class McpServer : private juce::Thread
@@ -28,6 +29,7 @@ private:
     void run() override;
     void stop();
     void serve (juce::StreamingSocket&);
+    bool readSome (juce::StreamingSocket&, juce::MemoryBlock&, int maxBytes);
     juce::String dispatch (const juce::var& message);
     XDProcessor* target() const;
 

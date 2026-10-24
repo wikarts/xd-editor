@@ -115,6 +115,7 @@ public:
     // librarian selection
     int libSrcBank = -1, libDstBank = -1, libDstSlot = -1;
     juce::Array<int> libSrcSlots;
+    void setLibDestination (int bank, int slot);
     int libSrcFirst() const { return libSrcSlots.isEmpty() ? -1 : libSrcSlots.getFirst(); }
 
     // ---- morph ----

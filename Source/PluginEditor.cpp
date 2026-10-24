@@ -253,11 +253,6 @@ static juce::File dirOr (const juce::String& d)
     return f.isDirectory() ? f : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
 }
 
-static juce::String slotTitle (int bank, int slot)
-{
-    return bankTitle ((BankId) bank) + " " + juce::String (slot + 1).paddedLeft ('0', 3);
-}
-
 void XDEditor::loadProgramFile (const juce::File& f, std::function<void (bool)> after)
 {
     Program p; AddInfo info;
