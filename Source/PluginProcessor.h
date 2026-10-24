@@ -4,6 +4,7 @@
 #include "core/Reports.h"
 #include "core/SysEx.h"
 #include "MidiEngine.h"
+#include "McpServer.h"
 #include "Settings.h"
 
 class XDProcessor : public juce::AudioProcessor,
@@ -51,6 +52,8 @@ public:
     SharedMidi& getMidi() { return *midi; }
     void applyMidiSettings();
     void makeActive();
+    bool isActive() const { return midi->isActive (this); }
+    McpServer& getMcp() { return *mcp; }
 
     const xd::Program& getCurrent() const { return current; }
     const xd::Program& getSaved() const { return saved; }
@@ -135,6 +138,7 @@ public:
 
     juce::String buildInfoReport (xd::ReportKind) const;
     juce::String lastReport;
+    juce::String lastTransferResult;
     int uiTab = 0;
     bool welcomeShown = false;
 
@@ -205,6 +209,7 @@ private:
 
     juce::SharedResourcePointer<Settings> settings;
     juce::SharedResourcePointer<SharedMidi> midi;
+    juce::SharedResourcePointer<McpServer> mcp;
     juce::ListenerList<Listener> listeners;
 
     xd::Program current, saved;

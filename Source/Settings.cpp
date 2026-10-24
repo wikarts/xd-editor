@@ -46,6 +46,8 @@ void Settings::load()
     outputRoute = juce::jlimit (0, 2, p.getIntValue ("outputRoute", outputRoute));
     hostThru = p.getBoolValue ("hostThru", hostThru);
     hostInputAsSynth = p.getBoolValue ("hostInputAsSynth", hostInputAsSynth);
+    mcpEnabled = p.getBoolValue ("mcpEnabled", mcpEnabled);
+    mcpPort = juce::jlimit (1024, 65535, p.getIntValue ("mcpPort", mcpPort));
     userNames.fromString (p.getValue ("userNames"));
     lastProgramDir = p.getValue ("lastProgramDir");
     lastBankDir = p.getValue ("lastBankDir");
@@ -79,6 +81,8 @@ void Settings::save()
     p.setValue ("outputRoute", outputRoute);
     p.setValue ("hostThru", hostThru);
     p.setValue ("hostInputAsSynth", hostInputAsSynth);
+    p.setValue ("mcpEnabled", mcpEnabled);
+    p.setValue ("mcpPort", mcpPort);
     p.setValue ("userNames", userNames.toString());
     p.setValue ("lastProgramDir", lastProgramDir);
     p.setValue ("lastBankDir", lastBankDir);

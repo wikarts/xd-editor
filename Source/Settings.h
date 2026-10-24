@@ -35,6 +35,9 @@ public:
     bool hostThru = true;        // forward notes coming from the host to the device output
     bool hostInputAsSynth = true;// parse CC/NRPN/SysEx arriving from the host as synth feedback
 
+    bool mcpEnabled = false;
+    int mcpPort = 7801;
+
     xd::UserNames userNames;
     juce::String lastProgramDir, lastBankDir, lastSysexName, lastLibName;
 

@@ -32,6 +32,7 @@ XDProcessor::XDProcessor()
 
     settings->addChangeListener (this);
     midi->addClient (this);
+    mcp->add (this);
     applyMidiSettings();
     startTimer (20);
     deviceInquiry();
@@ -43,6 +44,7 @@ XDProcessor::~XDProcessor()
     cancelPendingUpdate();
     settings->removeChangeListener (this);
     midi->removeClient (this);
+    mcp->remove (this);
     for (auto* p : params) p->removeListener (this);
     morphParam->removeListener (this);
 }
@@ -910,6 +912,7 @@ void XDProcessor::timerCallback()
 void XDProcessor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     applyMidiSettings();
+    mcp->applySettings();
     notify (cStatus | cParam | cBanks);
 }
 

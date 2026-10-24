@@ -60,6 +60,8 @@ target_sources(XDEditor PRIVATE
     Source/Settings.cpp
     Source/MidiEngine.cpp
     Source/Librarian.cpp
+    Source/McpServer.cpp
+    Source/McpTools.cpp
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
     Source/gui/Look.cpp
